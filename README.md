@@ -1,15 +1,16 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles four vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles five vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
 | **Bullet variants** | Extra bullet styles: `+`, `|->` (arrow), `=>` (moved) and `?` (question). Shift+Alt+8 cycles them. |
 | **Color swatches** | A swatch next to colors in inline code and code blocks: hex, rgb, hsl, hwb, lab, lch, oklab, oklch, `color()`, `color-mix()` and named colors. Click to copy. |
 | **Bulk properties** | Change, remove or rename a property's values across every note at once. |
+| **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
 | **Theme updates** | Installs themes from GitHub repos and keeps them up to date on startup. |
 
-It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
+It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
 
 ## Bullet variants
 
@@ -46,19 +47,25 @@ Run **Bulk edit properties** from the command palette, or click the list icon in
 
 **Rename...** renames a property or merges it into one that already exists. Changes cannot be undone with Ctrl+Z, so check the list of notes first.
 
+## MD to PDF export
+
+Open a note and run **Export current note to PDF** from the command palette, or click the file icon in the ribbon. The PDF is saved next to the note with the same name, and links stay clickable: web links as they are, and note links as `obsidian://` links that reopen the note.
+
+The PDF libraries (jsPDF and html2canvas-pro, about 1 MB) live in a separate file, `lib.js`, that is only read the first time you export, so they don't slow down Obsidian's startup. If `lib.js` is missing, the plugin downloads it from this repo by itself.
+
 ## Theme updates
 
 Each GitHub repo in the list needs `theme.css` and `manifest.json` at its root. Themes are checked on startup and installed into your themes folder using the name in `manifest.json`. Add a theme in the settings with a GitHub link (`https://github.com/owner/repo`, optionally `/tree/branch`) or `owner/repo`. Command: **Check for theme updates now**. One theme failing never stops the others.
 
 ## Install
 
-Copy `main.js`, `manifest.json` and `styles.css` from this repo into `<your vault>/.obsidian/plugins/vr-vault-management/` (the folder name must match the plugin ID), then turn on **Vault Management** under Settings > Community plugins.
+Copy `main.js`, `manifest.json`, `styles.css` and `lib.js` from this repo into `<your vault>/.obsidian/plugins/vr-vault-management/` (the folder name must match the plugin ID), then turn on **Vault Management** under Settings > Community plugins.
 
 Settings from the plugins this replaces are picked up if you copy their `data.json` into the new folder: the color swatch settings and the theme list both carry over.
 
 ## Updates
 
-The plugin updates itself. On startup it compares the version in this repo's `manifest.json` with the installed one and, if the repo's is newer, installs the new files and reloads. It refuses to install if the repo's plugin ID doesn't match. The command **Check for update now** does the same on demand. To ship a change, raise `version` in `manifest.json` and push (the built `main.js` is committed for this reason).
+The plugin updates itself. On startup it compares the version in this repo's `manifest.json` with the installed one and, if the repo's is newer, installs the new files (including `lib.js`) and reloads. It refuses to install if the repo's plugin ID doesn't match. The command **Check for update now** does the same on demand. To ship a change, raise `version` in `manifest.json` and push (the built `main.js` is committed for this reason).
 
 The ID `vr-vault-management` is deliberately unique, so Obsidian's "Check for updates" can't replace it with a different plugin.
 

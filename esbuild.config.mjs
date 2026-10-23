@@ -11,11 +11,10 @@ Source: https://github.com/VeryRandomness/obsidian-vault-management
 
 const prod = (process.argv[2] === "production");
 
-const context = await esbuild.context({
+const common = {
 	banner: {
 		js: banner,
 	},
-	entryPoints: ["src/main.ts"],
 	bundle: true,
 	external: [
 		"obsidian",
@@ -37,13 +36,23 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
 	minify: prod,
+};
+
+const mainCtx = await esbuild.context({ ...common, entryPoints: ["src/main.ts"], outfile: "main.js" });
+// lib.js (the PDF libraries) is evaluated via new Function(), so it must not require anything external.
+const libCtx = await esbuild.context({
+	...common,
+	entryPoints: ["src/features/pdfLib.ts"],
+	outfile: "lib.js",
+	external: [],
+	platform: "browser",
+	banner: {},
 });
 
 if (prod) {
-	await context.rebuild();
+	await Promise.all([mainCtx.rebuild(), libCtx.rebuild()]);
 	process.exit(0);
 } else {
-	await context.watch();
+	await Promise.all([mainCtx.watch(), libCtx.watch()]);
 }

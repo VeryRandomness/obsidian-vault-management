@@ -1,15 +1,14 @@
 import { Plugin } from "obsidian";
-import { setupAutoUpdate } from "./updater";
+import { REPO, setupAutoUpdate } from "./updater";
 import { SettingsHost, VaultManagementSettings, VaultManagementSettingTab, mergeSettings } from "./settings";
 import { ColorInline } from "./features/colorInline";
 import { setupBullets, _test as bulletsTest } from "./features/bullets.js";
 import { setupBulk, _test as bulkTest } from "./features/bulk.js";
+import { setupMdToPdf } from "./features/mdToPdf";
 import { ThemeUpdater, setupThemes, _test as themesTest } from "./features/themes.js";
 
-const REPO = "VeryRandomness/obsidian-vault-management";
-
-// Vault Management: bullet variants, color swatches, bulk property editing and
-// theme updates in one plugin. Each feature can be turned off in the settings.
+// Vault Management: bullet variants, color swatches, bulk property editing, PDF
+// export and theme updates in one plugin. Each feature can be turned off in the settings.
 export default class VaultManagementPlugin extends Plugin implements SettingsHost {
 	settings!: VaultManagementSettings;
 	colorInline: ColorInline | null = null;
@@ -26,6 +25,7 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 			this.colorInline.setup();
 		}
 		if (features.bulkProperties) setupBulk(this);
+		if (features.mdToPdf) setupMdToPdf(this);
 		if (features.themeUpdates) this.themes = setupThemes(this);
 
 		setupAutoUpdate(this, REPO);

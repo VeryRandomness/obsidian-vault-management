@@ -1,5 +1,6 @@
 import { Notice, Plugin, requestUrl } from "obsidian";
 
+export const REPO = "VeryRandomness/obsidian-vault-management";
 const BRANCH = "main";
 
 function newer(remote: string, local: string): boolean {
@@ -30,6 +31,11 @@ async function latestRef(repo: string): Promise<string> {
 	return BRANCH;
 }
 
+// One file from the repo's latest commit, for files the plugin fetches itself
+export async function fetchRepoFile(repo: string, file: string): Promise<string> {
+	return fetchText(repo, await latestRef(repo), file);
+}
+
 async function check(plugin: Plugin, repo: string, manual: boolean) {
 	const { manifest, app } = plugin;
 	try {
@@ -51,12 +57,15 @@ async function check(plugin: Plugin, repo: string, manual: boolean) {
 		if (!mainJs.trim()) throw new Error("downloaded main.js is empty");
 		let css: string | null = null;
 		try { css = await fetchText(repo, ref, "styles.css"); } catch { /* optional */ }
+		let lib: string | null = null;
+		try { lib = await fetchText(repo, ref, "lib.js"); } catch { /* optional */ }
 
 		const dir = manifest.dir!;
 		const adapter = app.vault.adapter;
 		await adapter.write(`${dir}/main.js`, mainJs);
 		await adapter.write(`${dir}/manifest.json`, remoteManifest);
 		if (css !== null) await adapter.write(`${dir}/styles.css`, css);
+		if (lib !== null && lib.trim()) await adapter.write(`${dir}/lib.js`, lib);
 
 		new Notice(`${manifest.name} updated to ${version}. Reloading…`);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
