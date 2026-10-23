@@ -1,0 +1,76 @@
+# Vault Management
+
+An [Obsidian](https://obsidian.md) plugin that bundles four vault tools in one. Each can be switched off in the settings.
+
+| Feature | What it does |
+| --- | --- |
+| **Bullet variants** | Extra bullet styles: `+`, `|->` (arrow), `=>` (moved) and `?` (question). Shift+Alt+8 cycles them. |
+| **Color swatches** | A swatch next to colors in inline code and code blocks: hex, rgb, hsl, hwb, lab, lch, oklab, oklch, `color()`, `color-mix()` and named colors. Click to copy. |
+| **Bulk properties** | Change, remove or rename a property's values across every note at once. |
+| **Theme updates** | Installs themes from GitHub repos and keeps them up to date on startup. |
+
+It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
+
+## Bullet variants
+
+Only the look changes; your notes keep exactly what you type.
+
+| You type | Bullet shown |
+| --- | --- |
+| `- text` | The normal dot |
+| `+ text` | A `+` sign |
+| `- \|-> text` | An arrow: down, then right |
+| `- => text` | A right arrow, for "moved" |
+| `- ? text` | A question mark |
+
+A space must follow the symbol. Tasks (`- [ ]`), numbered lists, `*` bullets and code blocks are left alone. In Live Preview the typed `|->`, `=>` or `?` is hidden until your cursor is on that line. The same shapes appear in Reading view and on mobile.
+
+**Shift+Alt+8** (command: **Cycle bullet style**) changes the bullet on the current line, or on every bullet in a selection: normal, `+`, `|->`, `=>`, `?`, then back to normal.
+
+## Color swatches
+
+The browser's own CSS parser reads the color, so anything it understands works, in old and new syntax: `#0fa`, `#ff008080`, `rgb(0 255 255 / 50%)`, `hsl(150deg 50% 90%)`, `hwb(194 0% 0%)`, `lab(50% 40 59)`, `oklch(70% 0.2 150)`, `color(display-p3 1 0 0)`, `color-mix(in srgb, red 50%, blue)`, and names like `rebeccapurple`. Not supported, because they depend on the page or theme: `var()`, `currentcolor`, system colors and `light-dark()`.
+
+- **Inline code:** the color has to fill the whole span: `` `#fff` `` gets a swatch, `` `color: #fff` `` does not. As a swatch box beside the code, or a colored badge ("Color the whole badge").
+- **Code blocks:** a swatch before each color. Hex and color functions are found in any language; color names only in CSS-like languages (css, scss, sass, less, stylus, html, svg, xml). Outside those, a hex color needs six or eight digits or a quote in front, so `#add feature` in a comment is left alone.
+- **Copy:** click a swatch in Reading view, or a code-block swatch in Live Preview. Ctrl/Cmd+click colored inline code in Live Preview. The command **Copy color at cursor** works everywhere, including mobile.
+
+## Bulk properties
+
+Run **Bulk edit properties** from the command palette, or click the list icon in the ribbon.
+
+1. **Pick a property.** Type to filter your property names; each shows how many notes use it.
+2. **Tick values.** Search its values and tick one or more. Ticking several lets you merge them, for example `Inprogress` and `In progress` into `In Progress`.
+3. **Choose an action:** change the ticked values to a new one, remove them, or delete the property from those notes. In a list property only the ticked items change.
+4. **Check the list of notes, then apply.**
+
+**Rename...** renames a property or merges it into one that already exists. Changes cannot be undone with Ctrl+Z, so check the list of notes first.
+
+## Theme updates
+
+Each GitHub repo in the list needs `theme.css` and `manifest.json` at its root. Themes are checked on startup and installed into your themes folder using the name in `manifest.json`. Add a theme in the settings with a GitHub link (`https://github.com/owner/repo`, optionally `/tree/branch`) or `owner/repo`. Command: **Check for theme updates now**. One theme failing never stops the others.
+
+## Install
+
+Copy `main.js`, `manifest.json` and `styles.css` from this repo into `<your vault>/.obsidian/plugins/vr-vault-management/` (the folder name must match the plugin ID), then turn on **Vault Management** under Settings > Community plugins.
+
+Settings from the plugins this replaces are picked up if you copy their `data.json` into the new folder: the color swatch settings and the theme list both carry over.
+
+## Updates
+
+The plugin updates itself. On startup it compares the version in this repo's `manifest.json` with the installed one and, if the repo's is newer, installs the new files and reloads. It refuses to install if the repo's plugin ID doesn't match. The command **Check for update now** does the same on demand. To ship a change, raise `version` in `manifest.json` and push (the built `main.js` is committed for this reason).
+
+The ID `vr-vault-management` is deliberately unique, so Obsidian's "Check for updates" can't replace it with a different plugin.
+
+## Build
+
+```bash
+npm ci
+npm run build
+```
+
+`npm run dev` rebuilds on every save. Source is in `src/`, one file per feature in `src/features/`.
+
+## Credits and license
+
+The color swatch feature is based on [S-Color-Inline](https://github.com/Abdulkader-Safi/s-color-inline) by Abdulkader Safi, which is based on [Inline Color Swatch](https://github.com/Suika225/inline-color-swatch) by Suika. MIT license, see [LICENSE](LICENSE).

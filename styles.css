@@ -1,0 +1,210 @@
+/* Vault Management: styles for each feature. */
+
+/* ===== Bullet Variants ===== */
+/* Bullet Variants: each variant swaps Obsidian's round bullet dot
+   (.list-bullet:after) for a shape cut out with a mask, so it takes the
+   bullet's own colour (and the collapsed / hover colours) from the theme.
+   Live Preview marks the line (.cm-line), Reading view marks the <li>. */
+
+.cm-line.bv-plus,
+li.bv-plus {
+	--bv-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 3v10M3 8h10' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* the arrow: down, then right, with a solid head */
+.cm-line.bv-arrow,
+li.bv-arrow {
+	--bv-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.6 2.5v7.5h4' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M7.3 6.9 12.2 10l-4.9 3.1z'/%3E%3C/svg%3E");
+}
+
+/* moved: a right arrow */
+.cm-line.bv-moved,
+li.bv-moved {
+	--bv-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h7.2' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M9.6 5.1 13.4 8l-3.8 2.9z'/%3E%3C/svg%3E");
+}
+
+.cm-line.bv-question,
+li.bv-question {
+	--bv-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5.6 6a2.5 2.5 0 1 1 3.9 2.1C8.5 8.7 8 9.2 8 10.2' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='13' r='1'/%3E%3C/svg%3E");
+}
+
+.cm-line:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) .list-bullet:after,
+li:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) > .list-bullet:after {
+	width: 1em;
+	height: 1em;
+	border: none;
+	border-radius: 0;
+	transform: none;
+	-webkit-mask: var(--bv-glyph) center / contain no-repeat;
+	mask: var(--bv-glyph) center / contain no-repeat;
+}
+
+/* ===== Color Inline Plus ===== */
+/* Swatch box, Reading view */
+.s-color-inline-swatch {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-left: 0.2em;
+	vertical-align: -0.12em;
+	background-color: var(--color-swatch);
+	outline: 1px solid rgba(0, 0, 0, 0.16);
+	outline-offset: -1px;
+}
+
+/* Swatch box, Live Preview */
+.cm-inline-code .s-color-inline-mark::after {
+	content: "";
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-left: 0.2em;
+	vertical-align: -0.12em;
+	border-radius: 0.2em;
+	background-color: var(--color-swatch);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16) inset;
+}
+
+/* Badge mode: hide the box and color the inline code itself. */
+.s-color-inline-badge .s-color-inline-swatch,
+.s-color-inline-badge .cm-inline-code .s-color-inline-mark::after {
+	display: none;
+}
+
+/* Reading view: themes paint inline code with --code-background and
+   --code-normal, so override them on the code element. */
+.s-color-inline-badge code.s-color-inline {
+	--code-background: var(--color-swatch);
+	--code-normal: var(--color-swatch-text);
+	background-color: var(--color-swatch);
+	color: var(--color-swatch-text);
+	/* keeps white or page-colored badges visible */
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+/* Live Preview: the mark sits inside the theme's .cm-inline-code span,
+   which owns the background and padding. Clear those on the wrapper and
+   draw the badge on the mark with the theme's padding, which main.ts
+   reads into --s-color-inline-padding. :has is limited to direct children and
+   only runs while badge mode is on. */
+.s-color-inline-badge .cm-inline-code:has(> .s-color-inline-mark) {
+	background-color: transparent;
+	padding: 0;
+}
+
+.s-color-inline-badge .cm-inline-code > .s-color-inline-mark {
+	background-color: var(--color-swatch);
+	color: var(--color-swatch-text);
+	padding: var(--s-color-inline-padding, 0.1em 0.25em);
+	border-radius: inherit;
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+/* Hidden copy of the editor markup that main.ts reads the theme padding from */
+.s-color-inline-probe {
+	position: absolute;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/* Swatch before a color inside a code block (Live Preview and Reading view) */
+.s-color-inline-cb {
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-right: 0.35em;
+	vertical-align: -0.1em;
+	border-radius: 0.2em;
+	background-color: var(--color-swatch);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16) inset;
+}
+
+/* Clickable swatches copy the color, so they get a pointer */
+.s-color-inline-copy .s-color-inline-swatch,
+.s-color-inline-copy .s-color-inline-cb,
+.s-color-inline-copy.s-color-inline-badge code.s-color-inline {
+	cursor: pointer;
+}
+
+/* ===== Bulk Properties ===== */
+.bulk-props .bulk-props-search {
+	width: 100%;
+	margin-bottom: var(--size-4-2);
+}
+
+.bulk-props .bulk-props-list {
+	max-height: 50vh;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.bulk-props .bulk-props-preview {
+	max-height: 25vh;
+}
+
+.bulk-props .bulk-props-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-1) var(--size-4-2);
+	cursor: pointer;
+}
+
+.bulk-props .bulk-props-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.bulk-props .bulk-props-name {
+	flex: 1;
+	overflow-wrap: anywhere;
+}
+
+.bulk-props .bulk-props-name.is-empty,
+.bulk-props .bulk-props-none {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.bulk-props .bulk-props-none {
+	padding: var(--size-4-2);
+}
+
+.bulk-props .bulk-props-count {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.bulk-props .bulk-props-file {
+	padding: 2px var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+}
+
+.bulk-props .bulk-props-header,
+.bulk-props .bulk-props-footer,
+.bulk-props .bulk-props-tools {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	margin: var(--size-4-2) 0;
+}
+
+.bulk-props .bulk-props-footer {
+	justify-content: space-between;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.bulk-props .bulk-props-title {
+	font-weight: var(--font-semibold);
+}
+
+.bulk-props .bulk-props-ticked,
+.bulk-props .bulk-props-label {
+	margin: var(--size-4-2) 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
