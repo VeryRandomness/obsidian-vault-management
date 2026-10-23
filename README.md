@@ -31,7 +31,7 @@ A space must follow the symbol. Tasks (`- [ ]`), numbered lists, `*` bullets and
 
 The browser's own CSS parser reads the color, so anything it understands works, in old and new syntax: `#0fa`, `#ff008080`, `rgb(0 255 255 / 50%)`, `hsl(150deg 50% 90%)`, `hwb(194 0% 0%)`, `lab(50% 40 59)`, `oklch(70% 0.2 150)`, `color(display-p3 1 0 0)`, `color-mix(in srgb, red 50%, blue)`, and names like `rebeccapurple`. Not supported, because they depend on the page or theme: `var()`, `currentcolor`, system colors and `light-dark()`.
 
-- **Inline code:** the color has to fill the whole span: `` `#fff` `` gets a swatch, `` `color: #fff` `` does not. As a swatch box beside the code, or a colored badge ("Color the whole badge").
+- **Inline code:** the color has to fill the whole span: `` `#fff` `` gets a swatch, `` `color: #fff` `` does not. Shown in one of three styles, chosen under **Inline color style** in the settings: a small swatch box beside the code (default), the whole code colored like a badge, or a big square of the color after the text. Code blocks always get the small swatch.
 - **Code blocks:** a swatch before each color. Hex and color functions are found in any language; color names only in CSS-like languages (css, scss, sass, less, stylus, html, svg, xml). Outside those, a hex color needs six or eight digits or a quote in front, so `#add feature` in a comment is left alone.
 - **Copy:** click a swatch in Reading view, or a code-block swatch in Live Preview. Ctrl/Cmd+click colored inline code in Live Preview. The command **Copy color at cursor** works everywhere, including mobile.
 

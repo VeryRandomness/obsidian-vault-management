@@ -66,6 +66,24 @@ li:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) > .list-bullet:after {
 	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16) inset;
 }
 
+/* Big square style: the same box, made bigger. The negative margins keep it
+   from stretching the line it sits on. */
+.s-color-inline-block .s-color-inline-swatch {
+	width: 1.7em;
+	height: 1.7em;
+	margin: -0.3em 0 -0.3em 0.4em;
+	vertical-align: middle;
+	border-radius: 0.25em;
+}
+
+.s-color-inline-block .cm-inline-code .s-color-inline-mark::after {
+	width: 1.7em;
+	height: 1.7em;
+	margin: -0.3em 0 -0.3em 0.4em;
+	vertical-align: middle;
+	border-radius: 0.25em;
+}
+
 /* Badge mode: hide the box and color the inline code itself. */
 .s-color-inline-badge .s-color-inline-swatch,
 .s-color-inline-badge .cm-inline-code .s-color-inline-mark::after {

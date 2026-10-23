@@ -6,8 +6,9 @@ import type { ColorSettings, Host } from "../settings";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { Extension, RangeSetBuilder } from "@codemirror/state";
 
-// Body classes that switch styles.css between swatch and badge mode, and show a pointer over clickable swatches
+// Body classes that switch styles.css between swatch, badge and big-square style, and show a pointer over clickable swatches
 const BADGE_CLASS = "s-color-inline-badge";
+const BLOCK_CLASS = "s-color-inline-block";
 const COPY_CLASS = "s-color-inline-copy";
 
 type CopyFn = (value: string) => void;
@@ -179,6 +180,7 @@ export class ColorInline {
 	unload(): void {
 		this.bodies().forEach((body) => {
 			body.removeClass(BADGE_CLASS);
+			body.removeClass(BLOCK_CLASS);
 			body.removeClass(COPY_CLASS);
 		});
 	}
@@ -211,7 +213,7 @@ export class ColorInline {
 			swatch.addEventListener("click", copy);
 			// in badge mode the whole badge is the color, so it copies too
 			codeEl.addEventListener("click", (e) => {
-				if (this.settings.badgeMode) copy(e);
+				if (this.settings.inlineStyle === "badge") copy(e);
 			});
 		});
 
@@ -306,7 +308,8 @@ export class ColorInline {
 	applyMode(): void {
 		const padding = readThemeCodePadding();
 		this.bodies().forEach((body) => {
-			body.toggleClass(BADGE_CLASS, this.settings.badgeMode);
+			body.toggleClass(BADGE_CLASS, this.settings.inlineStyle === "badge");
+			body.toggleClass(BLOCK_CLASS, this.settings.inlineStyle === "block");
 			body.toggleClass(COPY_CLASS, this.settings.copyOnClick);
 			body.setCssProps({ "--s-color-inline-padding": padding });
 		});

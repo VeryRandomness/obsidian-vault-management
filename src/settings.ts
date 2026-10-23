@@ -1,9 +1,13 @@
 import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_THEMES, ThemeUpdater, renderThemeSettings } from "./features/themes.js";
 
+export type InlineStyle = "swatch" | "badge" | "block";
+const INLINE_STYLES: InlineStyle[] = ["swatch", "badge", "block"];
+
 export interface ColorSettings {
-	// true: color the whole inline code badge; false: small swatch box next to the text
-	badgeMode: boolean;
+	// how a color in inline code is shown: a small swatch box next to the text,
+	// the whole code badge colored, or a big square of the color after the text
+	inlineStyle: InlineStyle;
 	// color names like `red` count as colors
 	namedColors: boolean;
 	// swatches for colors inside fenced code blocks
@@ -25,7 +29,7 @@ export interface VaultManagementSettings {
 	themes: { repo: string; branch: string; enabled: boolean; name?: string; version?: string }[];
 }
 
-export const DEFAULT_COLOR: ColorSettings = { badgeMode: false, namedColors: true, codeBlocks: true, copyOnClick: true };
+export const DEFAULT_COLOR: ColorSettings = { inlineStyle: "swatch", namedColors: true, codeBlocks: true, copyOnClick: true };
 export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, themeUpdates: true };
 
 // What the features need from the plugin
@@ -36,16 +40,22 @@ export interface Host extends Plugin {
 
 // Saved settings, with defaults for anything missing. Also reads the files of
 // the plugins this one replaces: Color Inline Plus kept its settings at the top
-// level, and Theme Auto-Update kept its theme list in `themes`, as here.
+// level, and Theme Auto-Update kept its theme list in `themes`, as here. The
+// old on/off "badgeMode" becomes inlineStyle "badge".
 export function mergeSettings(data: unknown): VaultManagementSettings {
 	const d = (data ?? {}) as Record<string, unknown>;
-	const legacyColor: Partial<ColorSettings> = {};
-	for (const key of Object.keys(DEFAULT_COLOR) as (keyof ColorSettings)[]) {
-		if (typeof d[key] === "boolean") legacyColor[key] = d[key] as boolean;
+	const saved = { ...((d.color as Record<string, unknown> | null | undefined) ?? {}) };
+	const legacy: Record<string, unknown> = {};
+	for (const key of ["namedColors", "codeBlocks", "copyOnClick", "badgeMode"]) {
+		if (typeof d[key] === "boolean") legacy[key] = d[key];
 	}
+	const merged: Record<string, unknown> = { ...DEFAULT_COLOR, ...legacy, ...saved };
+	const badge = merged.badgeMode;
+	delete merged.badgeMode;
+	const style = INLINE_STYLES.includes(saved.inlineStyle as InlineStyle) ? (saved.inlineStyle as InlineStyle) : badge === true ? "badge" : "swatch";
 	return {
 		features: { ...DEFAULT_FEATURES, ...((d.features as Partial<FeatureSettings> | undefined) ?? {}) },
-		color: { ...DEFAULT_COLOR, ...legacyColor, ...((d.color as Partial<ColorSettings> | undefined) ?? {}) },
+		color: { ...(merged as unknown as ColorSettings), inlineStyle: style },
 		themes: Array.isArray(d.themes) ? (d.themes as VaultManagementSettings["themes"]) : DEFAULT_THEMES.map((t) => ({ ...t })),
 	};
 }
@@ -94,8 +104,20 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 
 		heading("Color swatches");
 		const colorChanged = () => this.plugin.colorInline?.settingsChanged();
-		toggle("Color the whole badge", "On: the inline code background takes the color. Off: a small swatch box sits next to the code.",
-			() => s.color.badgeMode, (v) => (s.color.badgeMode = v), colorChanged);
+		new Setting(containerEl)
+			.setName("Inline color style")
+			.setDesc("How a color in inline code is shown: a small swatch box next to the text, the whole code badge colored, or a big square of the color after the text. Code blocks always get the small swatch.")
+			.addDropdown((d) =>
+				d.addOption("swatch", "Small swatch box")
+					.addOption("badge", "Colored badge")
+					.addOption("block", "Big square")
+					.setValue(s.color.inlineStyle)
+					.onChange(async (v) => {
+						s.color.inlineStyle = v as InlineStyle;
+						await save();
+						colorChanged();
+					})
+			);
 		toggle("Named colors", "Show a swatch for color names like red or rebeccapurple. In code blocks this only applies to CSS-like languages (css, scss, less, html, svg).",
 			() => s.color.namedColors, (v) => (s.color.namedColors = v), colorChanged);
 		toggle("Swatches in code blocks", "Show a swatch before each color inside fenced code blocks. Turn off to keep code blocks plain.",
