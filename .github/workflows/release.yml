@@ -1,0 +1,46 @@
+name: Release
+
+# A release is made on purpose: raise "version" in manifest.json and versions.json,
+# commit, then push a tag with that version (for example 1.3.1). The plugin's
+# updater installs the latest release only, never the main branch.
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: The tag must match the version in manifest.json
+        run: |
+          v=$(node -p "require('./manifest.json').version")
+          if [ "$v" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match manifest.json version $v"
+            exit 1
+          fi
+      - name: Type-check and build
+        run: npm run build
+      - name: The committed main.js and lib.js must match a fresh build
+        run: git diff --exit-code -- main.js lib.js
+      - name: Install the test browser
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Tests
+        run: npm test
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css lib.js \
+            --title "$GITHUB_REF_NAME" --generate-notes

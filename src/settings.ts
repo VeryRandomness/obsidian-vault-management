@@ -1,5 +1,8 @@
 import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_THEMES, ThemeUpdater, renderThemeSettings } from "./features/themes.js";
+import type { TextCover } from "./features/textCover";
+import type { TextCoverSettings } from "./features/textCoverSettings";
+import { renderTextCoverSettings } from "./features/textCoverSection";
 
 export type InlineStyle = "swatch" | "badge" | "block";
 const INLINE_STYLES: InlineStyle[] = ["swatch", "badge", "block"];
@@ -21,17 +24,20 @@ export interface FeatureSettings {
 	colorInline: boolean;
 	bulkProperties: boolean;
 	mdToPdf: boolean;
+	textCovers: boolean;
 	themeUpdates: boolean;
 }
 
 export interface VaultManagementSettings {
 	features: FeatureSettings;
 	color: ColorSettings;
+	// created the first time the text cover feature starts (see TextCover.loadState)
+	textCover?: TextCoverSettings;
 	themes: { repo: string; branch: string; enabled: boolean; name?: string; version?: string }[];
 }
 
 export const DEFAULT_COLOR: ColorSettings = { inlineStyle: "swatch", namedColors: true, codeBlocks: true, copyOnClick: true };
-export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, themeUpdates: true };
+export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, textCovers: true, themeUpdates: true };
 
 // What the features need from the plugin
 export interface Host extends Plugin {
@@ -57,6 +63,7 @@ export function mergeSettings(data: unknown): VaultManagementSettings {
 	return {
 		features: { ...DEFAULT_FEATURES, ...((d.features as Partial<FeatureSettings> | undefined) ?? {}) },
 		color: { ...(merged as unknown as ColorSettings), inlineStyle: style },
+		textCover: d.textCover && typeof d.textCover === "object" ? (d.textCover as TextCoverSettings) : undefined,
 		themes: Array.isArray(d.themes) ? (d.themes as VaultManagementSettings["themes"]) : DEFAULT_THEMES.map((t) => ({ ...t })),
 	};
 }
@@ -67,6 +74,7 @@ interface Refreshable {
 
 export interface SettingsHost extends Host {
 	colorInline: Refreshable | null;
+	textCover: TextCover | null;
 	themes: ThemeUpdater | null;
 }
 
@@ -102,6 +110,7 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 		toggle("Color swatches", "Color swatches next to colors in inline code and code blocks.", () => s.features.colorInline, (v) => (s.features.colorInline = v));
 		toggle("Bulk properties", "Change, remove or rename properties across every note.", () => s.features.bulkProperties, (v) => (s.features.bulkProperties = v));
 		toggle("MD to PDF export", "Export the current note to a PDF next to it.", () => s.features.mdToPdf, (v) => (s.features.mdToPdf = v));
+		toggle("Text covers", "Styled text covers for cards in Bases views.", () => s.features.textCovers, (v) => (s.features.textCovers = v));
 		toggle("Theme updates", "Install and update themes from GitHub on startup.", () => s.features.themeUpdates, (v) => (s.features.themeUpdates = v));
 
 		heading("Color swatches");
@@ -141,6 +150,17 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("How to use")
 			.setDesc("Open a note and run Export current note to PDF from the command palette, or click the file icon in the ribbon. The PDF is saved next to the note with the same name. The PDF library is downloaded once, the first time you need it.");
+
+		heading("Text covers");
+		if (this.plugin.textCover?.active) {
+			renderTextCoverSettings(containerEl, this.plugin.textCover);
+		} else {
+			new Setting(containerEl).setDesc(
+				this.plugin.textCover
+					? "Idle: the Text Cover Generator plugin is switched on. Turn it off, then restart Obsidian, to use this one."
+					: "Turned off under Features."
+			);
+		}
 
 		heading("Theme updates");
 		if (this.plugin.themes) {

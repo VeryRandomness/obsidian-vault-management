@@ -1,6 +1,6 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles five vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles six vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
@@ -8,9 +8,10 @@ An [Obsidian](https://obsidian.md) plugin that bundles five vault tools in one. 
 | **Color swatches** | A swatch next to colors in inline code and code blocks: hex, rgb, hsl, hwb, lab, lch, oklab, oklch, `color()`, `color-mix()` and named colors. Click to copy. |
 | **Bulk properties** | Change, remove or rename a property's values across every note at once. |
 | **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
+| **Text covers** | Styled text covers for cards in Bases views, with automatic cover downloads. |
 | **Theme updates** | Installs themes from GitHub repos and keeps them up to date on startup. |
 
-It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
+It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export, Text Cover Generator and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
 
 ## Bullet variants
 
@@ -45,7 +46,17 @@ Run **Bulk edit properties** from the command palette, or click the list icon in
 3. **Choose an action:** change the ticked values to a new one, remove them, or delete the property from those notes. In a list property only the ticked items change.
 4. **Check the list of notes, then apply.**
 
-**Rename...** renames a property or merges it into one that already exists. Changes cannot be undone with Ctrl+Z, so check the list of notes first.
+The list of notes shows what will change, note by note, as old → new (for example `Inprogress → In Progress`), and updates as you edit the new value.
+
+**Rename...** renames a property or merges it into one that already exists.
+
+**Undo.** Ctrl+Z won't undo a bulk edit, so every one is saved first: the properties of each note it changes, before and after, in `bulk-undo.json` next to the plugin (the last 10 edits). Run **Undo last bulk edit** from the command palette, or click **Undo it** at the bottom of the first screen. Undo puts the saved properties back, in their original order, but only in notes that still look exactly as the edit left them. A note you edited since, or deleted, is left alone, and the notice says how many.
+
+## Text covers
+
+Generates styled text covers for cards in Obsidian Bases views: a Cards view with its "Image property" set to `textCover` shows each note's text where a cover image would be. The text comes from the note's `textCover` property, or its title, or its body (first quote, then first paragraph). It can also download remote cover URLs (Google Books links, Amazon, Open Library, iTunes) into a covers folder, at the largest size available, and point the note at the local file. Everything is under **Text covers** in the settings.
+
+If the standalone Text Cover Generator plugin is switched on, this feature stays idle (so two copies don't fight over the same covers) and says so. The first time it runs without that plugin, it imports that plugin's settings and cover-text cache from its `data.json`. The cache is kept in its own file, `text-cover-cache.json`.
 
 ## MD to PDF export
 
@@ -59,15 +70,25 @@ Each GitHub repo in the list needs `theme.css` and `manifest.json` at its root. 
 
 ## Install
 
-Copy `main.js`, `manifest.json`, `styles.css` and `lib.js` from this repo into `<your vault>/.obsidian/plugins/vr-vault-management/` (the folder name must match the plugin ID), then turn on **Vault Management** under Settings > Community plugins.
+Download `main.js`, `manifest.json`, `styles.css` and `lib.js` from the [latest release](https://github.com/VeryRandomness/obsidian-vault-management/releases/latest) and copy them into `<your vault>/.obsidian/plugins/vr-vault-management/` (the folder name must match the plugin ID), then turn on **Vault Management** under Settings > Community plugins.
 
-Settings from the plugins this replaces are picked up if you copy their `data.json` into the new folder: the color swatch settings and the theme list both carry over.
+Settings from the plugins this replaces are picked up if you copy their `data.json` into the new folder (the color swatch settings and the theme list carry over). Text Cover Generator's settings and cache are imported by themselves, as described above.
 
 ## Updates
 
-The plugin updates itself. On startup it compares the version in this repo's `manifest.json` with the installed one and, if the repo's is newer, installs the new files (including `lib.js`) and reloads. It refuses to install if the repo's plugin ID doesn't match. The command **Check for update now** does the same on demand. To ship a change, raise `version` in `manifest.json` and push (the built `main.js` is committed for this reason).
+The plugin updates itself from this repo's **latest release**, never from the main branch. On startup it compares the release's version with the installed one and, if the release is newer, downloads the new files (`main.js`, `styles.css`, `lib.js`, `manifest.json`), writes them (the manifest last, so a failure retries on the next start) and reloads. It refuses to install a release whose plugin ID doesn't match, or whose tag doesn't match the version inside it. The command **Check for update now** does the same on demand.
 
 The ID `vr-vault-management` is deliberately unique, so Obsidian's "Check for updates" can't replace it with a different plugin.
+
+## Releasing
+
+Work on `main` is never installed by anyone. To ship a change:
+
+1. Raise `version` in `manifest.json` and add it to `versions.json`, then run `npm run build` and commit everything, including the built `main.js` and `lib.js`.
+2. Push, and wait for the **CI** workflow to pass: it type-checks, builds, checks that the committed `main.js` and `lib.js` match a fresh build, and runs the tests.
+3. Push a tag with the same number: `git tag 1.3.1 && git push origin 1.3.1`. The **Release** workflow builds and tests again and publishes the release. If anything fails, no release is made and nothing reaches any device.
+
+(Installs older than 1.3.0 updated from the main branch's files, so main keeps the built files of the latest release until those are gone.)
 
 ## Build
 
@@ -77,6 +98,16 @@ npm run build
 ```
 
 `npm run dev` rebuilds on every save. Source is in `src/`, one file per feature in `src/features/`.
+
+## Tests
+
+```bash
+npm run build
+npm install --no-save playwright@1.49.1 && npx playwright install chromium   # once
+npm test
+```
+
+The tests (`tests/*.test.cjs`) load the built `main.js` into a headless Chromium with the real CodeMirror and a stand-in for Obsidian's plugin API, and cover every feature, the settings, the updater and the Bulk Properties undo. They are also run by GitHub Actions on every push.
 
 ## Credits and license
 

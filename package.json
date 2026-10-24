@@ -1,18 +1,19 @@
 {
 	"name": "vr-vault-management",
 	"version": "1.0.0",
-	"description": "Obsidian plugin: bullet variants, color swatches, bulk property editing and theme updates in one plugin.",
+	"description": "Obsidian plugin: bullet variants, color swatches, bulk property editing, PDF export, text covers and theme updates in one plugin.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production"
+		"build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+		"test": "node tests/build.mjs && node tests/run.cjs"
 	},
 	"keywords": [
 		"obsidian",
 		"obsidian-plugin"
 	],
-	"author": "Abdulkader Safi",
+	"author": "VeryRandomness",
 	"license": "MIT",
 	"devDependencies": {
 		"@codemirror/state": "6.7.6",

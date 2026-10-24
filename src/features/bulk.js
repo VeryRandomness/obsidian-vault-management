@@ -127,9 +127,135 @@ function rename(fm, from, to) {
     return !!m.conflict;
 }
 
+/* Undo. Before a bulk edit changes a note, its properties are saved, before and
+   after, in a log file next to the plugin (the last UNDO_KEEP edits). Undoing
+   puts the saved properties back, in their original order, but only in notes
+   that still look exactly as the edit left them, so nothing written since is lost. */
+const UNDO_KEEP = 10;
+
+function snapshot(fm) {
+    return Object.entries(fm).map(([k, v]) => [k, JSON.parse(JSON.stringify(v === undefined ? null : v))]);
+}
+
+function sameSnapshot(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function applySnapshot(fm, entries) {
+    for (const k of Object.keys(fm))
+        delete fm[k];
+    for (const [k, v] of entries)
+        fm[k] = v;
+}
+
+function show(v) {
+    return Array.isArray(v) ? v.join(', ') : isEmpty(v) ? '(empty)' : String(v);
+}
+
+class UndoLog {
+    constructor(plugin) {
+        this.plugin = plugin;
+    }
+
+    get path() {
+        return this.plugin.manifest.dir + '/bulk-undo.json';
+    }
+
+    async read() {
+        try {
+            const list = JSON.parse(await this.plugin.app.vault.adapter.read(this.path));
+            return Array.isArray(list) ? list : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async write(list) {
+        await this.plugin.app.vault.adapter.write(this.path, JSON.stringify(list));
+    }
+
+    async add(entry) {
+        const list = await this.read();
+        list.push(entry);
+        await this.write(list.slice(-UNDO_KEEP));
+    }
+
+    async last() {
+        const list = await this.read();
+        return list[list.length - 1] || null;
+    }
+
+    async dropLast() {
+        const list = await this.read();
+        list.pop();
+        await this.write(list);
+    }
+}
+
+/* Runs `edit(fm, file)` on each note's properties and logs what changed, for undo */
+async function applyEdit(app, files, edit, description, log) {
+    const records = [];
+    let failed = 0;
+    for (const file of files) {
+        try {
+            let rec = null;
+            await app.fileManager.processFrontMatter(file, (fm) => {
+                const before = snapshot(fm);
+                edit(fm, file);
+                const after = snapshot(fm);
+                if (!sameSnapshot(before, after))
+                    rec = { path: file.path, before, after };
+            });
+            if (rec)
+                records.push(rec);
+        } catch (e) {
+            console.error('Bulk Properties:', file.path, e);
+            failed++;
+        }
+    }
+    if (records.length)
+        await log.add({ time: Date.now(), description: description + ' (' + records.length + ' note' + (records.length === 1 ? '' : 's') + ')', files: records });
+    return { changed: records.length, failed };
+}
+
+async function undoLast(app, log) {
+    const entry = await log.last();
+    if (!entry) {
+        new Notice('Bulk Properties: nothing to undo.');
+        return;
+    }
+    let restored = 0, skipped = 0, failed = 0;
+    for (const rec of entry.files) {
+        const file = app.vault.getFileByPath ? app.vault.getFileByPath(rec.path) : app.vault.getAbstractFileByPath(rec.path);
+        if (!file || !file.extension) {
+            skipped++; /* deleted or renamed since */
+            continue;
+        }
+        try {
+            let did = false;
+            await app.fileManager.processFrontMatter(file, (fm) => {
+                if (!sameSnapshot(snapshot(fm), rec.after))
+                    return; /* edited since: leave it alone */
+                applySnapshot(fm, rec.before);
+                did = true;
+            });
+            did ? restored++ : skipped++;
+        } catch (e) {
+            console.error('Bulk Properties:', rec.path, e);
+            failed++;
+        }
+    }
+    if (!failed)
+        await log.dropLast();
+    new Notice('Bulk Properties: undid “' + entry.description + '”: restored ' + restored + ' note' + (restored === 1 ? '' : 's') +
+        (skipped ? ', left ' + skipped + ' that changed since or no longer exist' : '') +
+        (failed ? ', ' + failed + ' failed (see console); run the undo again to retry' : '') + '.', skipped || failed ? 0 : 5000);
+}
+
 class BulkModal extends Modal {
-    constructor(app) {
+    constructor(app, log) {
         super(app);
+        this.log = log;
         this.props = collect(app);
         this.modalEl.addClass('bulk-props');
     }
@@ -172,6 +298,18 @@ class BulkModal extends Modal {
         };
         draw();
         input.focus();
+        this.log.last().then((entry) => {
+            if (!entry || !this.contentEl.contains(input))
+                return;
+            const row = this.contentEl.createDiv({ cls: 'bulk-props-footer' });
+            row.createSpan({ text: 'Last bulk edit: ' + entry.description });
+            const b = row.createEl('button', { text: 'Undo it' });
+            b.onclick = async () => {
+                b.disabled = true;
+                await undoLast(this.app, this.log);
+                this.close();
+            };
+        });
     }
 
     /* step 2: the values */
@@ -256,36 +394,43 @@ class BulkModal extends Modal {
             .onChange((v) => {
                 action = v;
                 valueSetting.settingEl.toggle(v === 'change');
+                draw();
             }));
         valueSetting = new Setting(el)
             .setName('New value')
             .setDesc('In a list, only the ticked items change. Leave empty to clear them.')
             .addText((t) => {
-                t.setPlaceholder('New value').onChange((v) => { text = v; });
+                t.setPlaceholder('New value').onChange((v) => { text = v; draw(); });
                 setTimeout(() => t.inputEl.focus(), 0);
             });
 
-        this.preview(el, files);
+        const holder = el.createDiv();
+        const draw = () => {
+            holder.empty();
+            this.preview(holder, files, (file) => {
+                const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
+                if (!fm || !(name in fm))
+                    return '';
+                if (action === 'delete')
+                    return show(fm[name]) + ' → (deleted)';
+                return show(fm[name]) + ' → ' + show(changed(fm[name], selected, action, text));
+            });
+        };
+        draw();
         this.applyButton(el, files.length, async () => {
-            let n = 0, failed = 0;
-            for (const file of files) {
-                try {
-                    await this.app.fileManager.processFrontMatter(file, (fm) => {
-                        if (!(name in fm))
-                            return;
-                        if (action === 'delete')
-                            delete fm[name];
-                        else
-                            fm[name] = changed(fm[name], selected, action, text);
-                    });
-                    n++;
-                } catch (e) {
-                    console.error('Bulk Properties:', file.path, e);
-                    failed++;
-                }
-            }
-            new Notice('Bulk Properties: updated ' + n + ' note' + (n === 1 ? '' : 's') +
-                (failed ? ', ' + failed + ' failed (see console)' : ''));
+            const what = action === 'delete' ? 'Deleted “' + name + '”'
+                : action === 'remove' ? 'Removed ' + labels.join(', ') + ' from “' + name + '”'
+                : 'Changed “' + name + '”: ' + labels.join(', ') + ' → ' + (text.trim() || '(empty)');
+            const r = await applyEdit(this.app, files, (fm) => {
+                if (!(name in fm))
+                    return;
+                if (action === 'delete')
+                    delete fm[name];
+                else
+                    fm[name] = changed(fm[name], selected, action, text);
+            }, what, this.log);
+            new Notice('Bulk Properties: updated ' + r.changed + ' note' + (r.changed === 1 ? '' : 's') +
+                (r.failed ? ', ' + r.failed + ' failed (see console)' : '') + '. To undo, run “Undo last bulk edit”.');
         });
     }
 
@@ -312,31 +457,34 @@ class BulkModal extends Modal {
                 : both ? both + ' of these notes already have “' + to + '”. Lists are combined; if both have different single values, “' + to + '” keeps its own.'
                 : this.props.has(to) ? 'Merges into the existing “' + to + '” property.' : '');
         };
-        input.oninput = update;
-        this.preview(el, p.files);
+        const holder = el.createDiv();
+        const draw = () => {
+            holder.empty();
+            this.preview(holder, p.files, (file) => {
+                const to = input.value.trim();
+                if (!to || to === name)
+                    return '';
+                const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
+                return name + ' → ' + to + (fm && to in fm ? ' (merges with the existing value)' : '');
+            });
+        };
+        input.oninput = () => { update(); draw(); };
+        draw();
         this.applyButton(el, p.files.length, async () => {
             const to = input.value.trim();
             if (!to || to === name) {
                 new Notice('Bulk Properties: type a different property name.');
                 return false;
             }
-            let n = 0, failed = 0;
             const conflicts = [];
-            for (const file of p.files) {
-                try {
-                    await this.app.fileManager.processFrontMatter(file, (fm) => {
-                        if (name in fm && rename(fm, name, to))
-                            conflicts.push(file.basename);
-                    });
-                    n++;
-                } catch (e) {
-                    console.error('Bulk Properties:', file.path, e);
-                    failed++;
-                }
-            }
-            new Notice('Bulk Properties: renamed in ' + n + ' note' + (n === 1 ? '' : 's') +
-                (failed ? ', ' + failed + ' failed (see console)' : '') +
-                (conflicts.length ? '. Kept “' + to + '” where values differed: ' + conflicts.join(', ') : ''),
+            const r = await applyEdit(this.app, p.files, (fm, file) => {
+                if (name in fm && rename(fm, name, to))
+                    conflicts.push(file.basename);
+            }, 'Renamed “' + name + '” to “' + to + '”', this.log);
+            new Notice('Bulk Properties: renamed in ' + r.changed + ' note' + (r.changed === 1 ? '' : 's') +
+                (r.failed ? ', ' + r.failed + ' failed (see console)' : '') +
+                (conflicts.length ? '. Kept “' + to + '” where values differed: ' + conflicts.join(', ') : '') +
+                '. To undo, run “Undo last bulk edit”.',
                 conflicts.length ? 0 : 5000);
         });
         input.focus();
@@ -349,18 +497,20 @@ class BulkModal extends Modal {
         h.createSpan({ text, cls: 'bulk-props-title' });
     }
 
-    preview(el, files) {
+    preview(el, files, describe) {
         el.createDiv({ text: 'Notes that will change (' + files.length + '):', cls: 'bulk-props-label' });
         const list = el.createDiv({ cls: 'bulk-props-list bulk-props-preview' });
-        for (const f of files.slice(0, PREVIEW_MAX))
-            list.createDiv({ text: f.path.replace(/\.md$/, ''), cls: 'bulk-props-file' });
+        for (const f of files.slice(0, PREVIEW_MAX)) {
+            const change = describe ? describe(f) : '';
+            list.createDiv({ text: f.path.replace(/\.md$/, '') + (change ? ': ' + change : ''), cls: 'bulk-props-file' });
+        }
         if (files.length > PREVIEW_MAX)
             list.createDiv({ text: '…and ' + (files.length - PREVIEW_MAX) + ' more', cls: 'bulk-props-none' });
     }
 
     applyButton(el, count, run) {
         const footer = el.createDiv({ cls: 'bulk-props-footer' });
-        footer.createSpan({ text: 'This cannot be undone with Ctrl+Z.' });
+        footer.createSpan({ text: 'Ctrl+Z will not undo this: use Undo last bulk edit.' });
         const b = footer.createEl('button', { text: 'Apply to ' + count + ' note' + (count === 1 ? '' : 's'), cls: 'mod-warning' });
         b.onclick = async () => {
             b.disabled = true;
@@ -375,10 +525,12 @@ class BulkModal extends Modal {
 }
 
 export function setupBulk(plugin) {
-    const open = () => new BulkModal(plugin.app).open();
+    const log = new UndoLog(plugin);
+    const open = () => new BulkModal(plugin.app, log).open();
     plugin.addCommand({ id: 'bulk-edit-properties', name: 'Bulk edit properties', callback: open });
+    plugin.addCommand({ id: 'undo-last-bulk-edit', name: 'Undo last bulk edit', callback: () => undoLast(plugin.app, log) });
     plugin.addRibbonIcon('list-checks', 'Bulk edit properties', open);
 }
 
 /* for tests outside Obsidian */
-export const _test = { changed, merge, rename, valueKeys, EMPTY, key };
+export const _test = { changed, merge, rename, valueKeys, EMPTY, key, snapshot, sameSnapshot, applySnapshot, applyEdit, undoLast, UndoLog };

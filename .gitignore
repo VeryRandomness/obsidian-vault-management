@@ -5,3 +5,4 @@ data.json
 .vscode
 .idea
 # main.js is committed: the plugin updates itself from this repo, so the built file has to be here.
+tests/.build/

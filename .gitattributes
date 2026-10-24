@@ -1,0 +1,6 @@
+# Keep line endings the same on every machine (the sources were edited on Windows)
+* text=auto eol=lf
+# Built files: not worth diffing line by line
+main.js -diff linguist-generated=true
+lib.js -diff linguist-generated=true
+package-lock.json -diff

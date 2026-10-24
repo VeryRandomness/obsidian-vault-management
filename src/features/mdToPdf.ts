@@ -1,6 +1,6 @@
 import { App, MarkdownRenderer, Notice, TFile } from "obsidian";
 import type { Host } from "../settings";
-import { REPO, fetchRepoFile } from "../updater";
+import { REPO, fetchReleaseAsset } from "../updater";
 
 // Exports the current note to a PDF next to it. jspdf and html2canvas-pro are
 // ~1MB combined. They live in a separate lib.js (see pdfLib.ts) that is read
@@ -16,13 +16,13 @@ let libPromise: Promise<Lib> | null = null;
 
 // lib.js is installed next to main.js by the updater. A copy of the plugin that
 // was updated by an older updater (which didn't know about lib.js) doesn't have
-// it yet, so fetch it from the repo when it's missing.
+// it yet, so fetch it from the latest release when it's missing.
 export async function ensureLib(plugin: Host): Promise<void> {
 	const adapter = plugin.app.vault.adapter;
 	const path = `${plugin.manifest.dir}/lib.js`;
 	if (await adapter.exists(path)) return;
 	try {
-		const code = await fetchRepoFile(REPO, "lib.js");
+		const code = await fetchReleaseAsset(REPO, "lib.js");
 		if (code.trim()) await adapter.write(path, code);
 	} catch (e) {
 		console.warn("Vault Management: could not download lib.js", e);
