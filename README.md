@@ -86,7 +86,10 @@ Work on `main` is never installed by anyone. To ship a change:
 
 1. Raise `version` in `manifest.json` and add it to `versions.json`, then run `npm run build` and commit everything, including the built `main.js` and `lib.js`.
 2. Push, and wait for the **CI** workflow to pass: it type-checks, builds, checks that the committed `main.js` and `lib.js` match a fresh build, and runs the tests.
-3. Push a tag with the same number: `git tag 1.3.1 && git push origin 1.3.1`. The **Release** workflow builds and tests again and publishes the release. If anything fails, no release is made and nothing reaches any device.
+3. Push a tag with the same number: `git tag 1.3.1 && git push origin 1.3.1`. The **Release** workflow checks the tag against `manifest.json`, builds and tests again, and keeps the tested files.
+4. **Approve the release.** Publishing then waits for a manual approval: GitHub > Actions > the release run > **Review deployments** > tick **release** > **Approve and deploy**. Only then are `main.js`, `manifest.json`, `styles.css` and `lib.js` published, exactly as tested. If anything fails, or nobody approves, no release is made and nothing reaches any device.
+
+Release tags are permanent: they can't be moved or deleted, and `main` can't be force-pushed or deleted. If a tagged release goes wrong, fix it with a new version number. Actions > **Release** > **Run workflow** on `main` is a dry run: it builds and tests and publishes nothing.
 
 (Installs older than 1.3.0 updated from the main branch's files, so main keeps the built files of the latest release until those are gone.)
 
