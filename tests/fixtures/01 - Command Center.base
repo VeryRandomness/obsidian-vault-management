@@ -1,0 +1,41 @@
+views:
+  - type: table
+    name: Master
+    filters:
+      and:
+        - file.ext != "base"
+    order:
+      - file.name
+      - tags
+      - Designation
+      - Genre
+      - author
+    sort:
+      - property: file.name
+        direction: ASC
+      - property: tags
+        direction: ASC
+      - property: Designation
+        direction: ASC
+    rowHeight: medium
+    indentProperties: true
+    image: note.textCover
+  - type: list
+    name: In Progress
+    filters:
+      and:
+        - Designation == ["In Progress"]
+    order:
+      - file.name
+      - Designation
+    sort:
+      - property: Designation
+        direction: ASC
+    indentProperties: true
+  - type: list
+    name: Fleeting
+    filters:
+      and:
+        - Designation == ["Fleeting Note"]
+        - file.folder != "0 Media/Templates"
+    indentProperties: true

@@ -6,14 +6,16 @@ import { setupBullets, _test as bulletsTest } from "./features/bullets.js";
 import { setupBulk, _test as bulkTest } from "./features/bulk.js";
 import { setupMdToPdf } from "./features/mdToPdf";
 import { TextCover, _test as textCoverTest } from "./features/textCover";
+import { NewNote, _test as newNoteTest } from "./features/newNote";
 import { ThemeUpdater, setupThemes, _test as themesTest } from "./features/themes.js";
 
 // Vault Management: bullet variants, color swatches, bulk property editing, PDF
-// export, text covers and theme updates in one plugin. Each feature can be turned off in the settings.
+// export, text covers, new notes from templates and theme updates in one plugin. Each feature can be turned off in the settings.
 export default class VaultManagementPlugin extends Plugin implements SettingsHost {
 	settings!: VaultManagementSettings;
 	colorInline: ColorInline | null = null;
 	textCover: TextCover | null = null;
+	newNote: NewNote | null = null;
 	themes: ThemeUpdater | null = null;
 
 	async onload(): Promise<void> {
@@ -32,6 +34,10 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 			this.textCover = new TextCover(this);
 			await this.textCover.setup();
 		}
+		if (features.newNoteButton) {
+			this.newNote = new NewNote(this);
+			this.newNote.setup();
+		}
 		if (features.themeUpdates) this.themes = setupThemes(this);
 
 		setupAutoUpdate(this, REPO);
@@ -40,6 +46,7 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 	onunload(): void {
 		this.colorInline?.unload();
 		this.textCover?.unload();
+		this.newNote?.unload();
 	}
 
 	async saveSettings(): Promise<void> {
@@ -48,4 +55,4 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 }
 
 /* for tests outside Obsidian */
-export const __test = { bullets: bulletsTest, bulk: bulkTest, themes: themesTest, textCover: textCoverTest, mergeSettings };
+export const __test = { bullets: bulletsTest, bulk: bulkTest, themes: themesTest, textCover: textCoverTest, newNote: newNoteTest, mergeSettings };

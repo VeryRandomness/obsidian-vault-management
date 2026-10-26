@@ -3,6 +3,7 @@ import { DEFAULT_THEMES, ThemeUpdater, renderThemeSettings } from "./features/th
 import type { TextCover } from "./features/textCover";
 import type { TextCoverSettings } from "./features/textCoverSettings";
 import { renderTextCoverSettings } from "./features/textCoverSection";
+import { DEFAULT_NEW_NOTE, type NewNote, type NewNoteSettings } from "./features/newNote";
 
 export type InlineStyle = "swatch" | "badge" | "block";
 const INLINE_STYLES: InlineStyle[] = ["swatch", "badge", "block"];
@@ -25,19 +26,21 @@ export interface FeatureSettings {
 	bulkProperties: boolean;
 	mdToPdf: boolean;
 	textCovers: boolean;
+	newNoteButton: boolean;
 	themeUpdates: boolean;
 }
 
 export interface VaultManagementSettings {
 	features: FeatureSettings;
 	color: ColorSettings;
+	newNote: NewNoteSettings;
 	// created the first time the text cover feature starts (see TextCover.loadState)
 	textCover?: TextCoverSettings;
 	themes: { repo: string; branch: string; enabled: boolean; name?: string; version?: string }[];
 }
 
 export const DEFAULT_COLOR: ColorSettings = { inlineStyle: "swatch", namedColors: true, codeBlocks: true, copyOnClick: true };
-export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, textCovers: true, themeUpdates: true };
+export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, textCovers: true, newNoteButton: true, themeUpdates: true };
 
 // What the features need from the plugin
 export interface Host extends Plugin {
@@ -63,9 +66,19 @@ export function mergeSettings(data: unknown): VaultManagementSettings {
 	return {
 		features: { ...DEFAULT_FEATURES, ...((d.features as Partial<FeatureSettings> | undefined) ?? {}) },
 		color: { ...(merged as unknown as ColorSettings), inlineStyle: style },
+		newNote: mergeNewNote(d.newNote),
 		textCover: d.textCover && typeof d.textCover === "object" ? (d.textCover as TextCoverSettings) : undefined,
 		themes: Array.isArray(d.themes) ? (d.themes as VaultManagementSettings["themes"]) : DEFAULT_THEMES.map((t) => ({ ...t })),
 	};
+}
+
+function mergeNewNote(raw: unknown): NewNoteSettings {
+	const r = (raw && typeof raw === "object" ? raw : {}) as Partial<NewNoteSettings>;
+	const locks: Record<string, string[]> = {};
+	if (r.locks && typeof r.locks === "object") {
+		for (const [k, v] of Object.entries(r.locks)) if (Array.isArray(v)) locks[k] = v.filter((x) => typeof x === "string");
+	}
+	return { skipSingle: typeof r.skipSingle === "boolean" ? r.skipSingle : DEFAULT_NEW_NOTE.skipSingle, locks };
 }
 
 interface Refreshable {
@@ -75,6 +88,7 @@ interface Refreshable {
 export interface SettingsHost extends Host {
 	colorInline: Refreshable | null;
 	textCover: TextCover | null;
+	newNote: NewNote | null;
 	themes: ThemeUpdater | null;
 }
 
@@ -111,6 +125,7 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 		toggle("Bulk properties", "Change, remove or rename properties across every note.", () => s.features.bulkProperties, (v) => (s.features.bulkProperties = v));
 		toggle("MD to PDF export", "Export the current note to a PDF next to it.", () => s.features.mdToPdf, (v) => (s.features.mdToPdf = v));
 		toggle("Text covers", "Styled text covers for cards in Bases views.", () => s.features.textCovers, (v) => (s.features.textCovers = v));
+		toggle("New note from template", "A Template button in Bases toolbars, and a command, to make a note from one of your templates.", () => s.features.newNoteButton, (v) => (s.features.newNoteButton = v));
 		toggle("Theme updates", "Install and update themes from GitHub on startup.", () => s.features.themeUpdates, (v) => (s.features.themeUpdates = v));
 
 		heading("Color swatches");
@@ -160,6 +175,30 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 					? "Idle: the Text Cover Generator plugin is switched on. Turn it off, then restart Obsidian, to use this one."
 					: "Turned off under Features."
 			);
+		}
+
+		heading("New note from template");
+		if (this.plugin.newNote) {
+			new Setting(containerEl)
+				.setName("How to use")
+				.setDesc("Click Template in a base's toolbar, or run New note from template. Pick a template, name the note, and it is created in the vault root with the properties that base's view filters on. Click the lock next to a template to lock it to that base: a base with locked templates shows only those (Show all switches back). Templater is used if it is on, otherwise core Templates.");
+			toggle("Skip the list when one template is locked", "When a base has exactly one locked template, go straight to naming the note. Choose another still opens the full list.",
+				() => s.newNote.skipSingle, (v) => (s.newNote.skipSingle = v));
+			const locks = Object.entries(s.newNote.locks);
+			if (!locks.length) new Setting(containerEl).setDesc("No templates are locked to a base yet.");
+			for (const [base, templates] of locks) {
+				const names = templates.map((p) => p.split("/").pop()!.replace(/\.md$/, ""));
+				new Setting(containerEl)
+					.setName(base.split("/").pop()!.replace(/\.base$/, ""))
+					.setDesc("Locked: " + names.join(", "))
+					.addExtraButton((b) => b.setIcon("trash").setTooltip("Unlock all templates from this base").onClick(async () => {
+						delete s.newNote.locks[base];
+						await save();
+						this.display();
+					}));
+			}
+		} else {
+			new Setting(containerEl).setDesc("Turned off under Features.");
 		}
 
 		heading("Theme updates");

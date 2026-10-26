@@ -1,3 +1,4 @@
+const YAML = require('yaml');
 const view = require('@codemirror/view'); const state = require('@codemirror/state');
 const P = Element.prototype;
 P.addClass = function (c) { this.classList.add(c); }; P.removeClass = function (c) { this.classList.remove(c); };
@@ -5,7 +6,8 @@ P.toggleClass = function (c, on) { this.classList.toggle(c, !!on); };
 P.setCssProps = function (o) { for (const k in o) this.style.setProperty(k, o[k]); };
 P.instanceOf = function (C) { return this instanceof C; };
 P.empty = function () { this.replaceChildren(); };
-P.createEl = function (tag, o = {}) { const e = document.createElement(tag); if (o.cls) e.className = o.cls; if (o.text) e.textContent = o.text; this.appendChild(e); return e; };
+P.createEl = function (tag, o = {}) { const e = document.createElement(tag); if (o.cls) e.className = o.cls; if (o.text) e.textContent = o.text; for (const k of ['type', 'placeholder', 'value']) if (o[k] !== undefined) e[k] = o[k]; if (o.attr) for (const k in o.attr) e.setAttribute(k, o.attr[k]); this.appendChild(e); return e; };
+P.setText = function (s) { this.textContent = s; };
 P.createDiv = function (o = {}) { return this.createEl('div', o); };
 P.createSpan = function (o = {}) { const e = this.createEl('span', o); if (o.attr) for (const k in o.attr) e.setAttribute(k, o.attr[k]); return e; };
 window.__notices = []; window.__clip = []; window.__settings = []; window.__web = {}; window.__files = {}; window.__notes = {}; window.__writes = [];
@@ -42,12 +44,15 @@ class Setting {
     addDropdown(cb) { return control('dropdown', this, cb); } addButton(cb) { return control('button', this, cb); } addExtraButton(cb) { return control('extra', this, cb); }
     addSlider(cb) { return control('slider', this, cb); }
 }
-class Modal { constructor(app) { this.app = app; } open() {} close() {} }
+// open() runs onOpen like Obsidian does; the open modal is window.__modal
+class Modal { constructor(app) { this.app = app; this.modalEl = document.createElement('div'); this.titleEl = this.modalEl.createDiv(); this.contentEl = this.modalEl.createDiv(); } open() { window.__modal = this; document.body.appendChild(this.modalEl); if (this.onOpen) this.onOpen(); } close() { if (this.onClose) this.onClose(); this.modalEl.remove(); if (window.__modal === this) window.__modal = null; } }
 class MarkdownView {}
 class TFile { constructor(path = 'Note.md') { this.path = path; this.extension = path.split('.').pop(); } }
 const MarkdownRenderer = { render: async (app, content, el) => { el.innerHTML = window.__rendered || ''; } };
 window.createDiv = (o = {}) => { const e = document.createElement('div'); if (o.cls) e.className = o.cls; return e; };
-const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, TFile, MarkdownRenderer, editorLivePreviewField: state.StateField.define({ create: () => true, update: (v) => v }),
+const setIcon = (el, name) => { el.setAttribute('data-icon', name); };
+const parseYaml = (s) => YAML.parse(s);
+const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, TFile, MarkdownRenderer, setIcon, parseYaml, editorLivePreviewField: state.StateField.define({ create: () => true, update: (v) => v }),
     requestUrl: async ({ url }) => {
         if (window.__web.offline) throw new Error('offline');
         let m = url.match(/api\.github\.com\/repos\/([^/]+\/[^/]+)\/releases\/latest/);
@@ -62,6 +67,7 @@ const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, T
     } };
 const mods = { obsidian: stub, '@codemirror/view': view, '@codemirror/state': state };
 window.__make = (code, data) => {
+    window.__vaultHandlers = {};
     window.__data = data || null; window.__settings.length = 0;
     const module = { exports: {} }; new Function('module', 'exports', 'require', code)(module, module.exports, (n) => mods[n]);
     window.__exports = module.exports;
@@ -70,7 +76,7 @@ window.__make = (code, data) => {
     const app = { workspace: { on() { return {}; }, getLeavesOfType: () => [], getActiveFile: () => window.__active || null, onLayoutReady: (f) => layout.push(f), iterateAllLeaves() {}, updateOptions() { window.__updated = (window.__updated || 0) + 1; } },
         metadataCache: { on() { return {}; }, getFileCache: (f) => (window.__notes[f.path] ? { frontmatter: window.__notes[f.path].fm } : null), getFirstLinkpathDest: (t) => (t === 'Other' ? { path: 'Other.md' } : null) },
         fileManager: { processFrontMatter: async (f, cb) => { const n = window.__notes[f.path]; if (!n) throw new Error('no such note ' + f.path); if (n.fail) throw new Error('write failed'); const fm = n.fm; cb(fm); } },
-        vault: { configDir: '.obsidian', on() { return {}; }, getMarkdownFiles: () => [], getFileByPath: (p) => (window.__notes[p] ? { path: p, extension: 'md', basename: p.replace(/\.md$/, '') } : null), getName: () => 'Test Vault', cachedRead: async () => '# note', getAbstractFileByPath: () => null, createBinary: async (p, b) => { window.__pdf = { path: p, bytes: new Uint8Array(b) }; }, modifyBinary: async () => {}, adapter: { read: async (f) => { if (!(f in files)) throw new Error('ENOENT'); return files[f]; }, write: async (f, t) => { files[f] = t; window.__writes.push(f); }, exists: async (f) => f in files || Object.keys(files).some((k) => k.startsWith(f + '/')), mkdir: async () => {} } },
+        vault: { configDir: '.obsidian', on(name, fn) { ((window.__vaultHandlers = window.__vaultHandlers || {})[name] = window.__vaultHandlers[name] || []).push(fn); return {}; }, getMarkdownFiles: () => [], getFileByPath: (p) => (window.__notes[p] ? { path: p, extension: 'md', basename: p.replace(/\.md$/, '') } : null), getName: () => 'Test Vault', cachedRead: async () => '# note', getAbstractFileByPath: () => null, createBinary: async (p, b) => { window.__pdf = { path: p, bytes: new Uint8Array(b) }; }, modifyBinary: async () => {}, adapter: { read: async (f) => { if (!(f in files)) throw new Error('ENOENT'); return files[f]; }, write: async (f, t) => { files[f] = t; window.__writes.push(f); }, exists: async (f) => f in files || Object.keys(files).some((k) => k.startsWith(f + '/')), mkdir: async () => {} } },
         customCss: { theme: '', setTheme(n) { this.theme = n; window.__reloaded = n; } }, plugins: { disablePlugin: async (x) => { window.__reload = (window.__reload || []).concat('d ' + x); }, enablePlugin: async (x) => { window.__reload = (window.__reload || []).concat('e ' + x); } } };
     const p = new module.exports.default(app, { id: 'vr-vault-management', name: 'Vault Management', version: '1.0.0', dir: '.obsidian/plugins/vr-vault-management' });
     p.layout = layout; window.__p = p; return p;

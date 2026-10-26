@@ -11,15 +11,15 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
 
     // 1. everything on by default
     let r = await boot(null);
-    ok(JSON.stringify(r.cmds) === JSON.stringify(['bulk-edit-properties', 'check-for-update', 'check-theme-update', 'copy-color-at-cursor', 'cycle-bullet', 'export-current-note-to-pdf', 'undo-last-bulk-edit']), 'commands: ' + r.cmds);
+    ok(JSON.stringify(r.cmds) === JSON.stringify(['bulk-edit-properties', 'check-for-update', 'check-theme-update', 'copy-color-at-cursor', 'cycle-bullet', 'export-current-note-to-pdf', 'new-note-from-template', 'undo-last-bulk-edit']), 'commands: ' + r.cmds);
     ok(r.procs === 2 && r.exts === 2 && JSON.stringify(r.ribbon) === '["list-checks","file-output"]' && r.tab, `processors ${r.procs}, extensions ${r.exts}, ribbon ${r.ribbon}, tab ${r.tab}`);
     ok(JSON.stringify(r.hotkey) === '[{"modifiers":["Shift","Alt"],"key":"8"}]', 'Shift+Alt+8 hotkey kept');
-    ok(r.layout === 5, 'startup tasks registered (PDF library check, text covers x2, themes, self-update): ' + r.layout);
+    ok(r.layout === 6, 'startup tasks registered (PDF library check, text covers x2, new-note button, themes, self-update): ' + r.layout);
     ok(r.settings.themes.length === 1 && r.settings.themes[0].repo === 'VeryRandomness/obsidian-nordic-days-and-nights', 'default theme list');
     console.log('1. all features on by default: ' + r.cmds.length + ' commands');
 
     // 2. every feature off: only the updater remains
-    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, mdToPdf: false, textCovers: false, themeUpdates: false } });
+    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, mdToPdf: false, textCovers: false, newNoteButton: false, themeUpdates: false } });
     ok(JSON.stringify(r.cmds) === '["check-for-update"]' && r.procs === 0 && r.exts === 0 && r.ribbon.length === 0, 'all off: ' + JSON.stringify(r));
     r = await boot({ features: { bullets: false } });
     ok(!r.cmds.includes('cycle-bullet') && r.cmds.includes('copy-color-at-cursor') && r.cmds.includes('bulk-edit-properties') && r.procs === 1, 'only bullets off: ' + r.cmds);
@@ -138,7 +138,7 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
         window.__p.themes = null; window.__settings.length = 0; p.tab.display(); out.themesOff = window.__settings.some((s) => /Turned off under Features/.test(s.desc));
         return out;
     }, code);
-    const MAIN = ['Features', 'Color swatches', 'Bullet variants', 'Bulk properties', 'MD to PDF export', 'Text covers', 'Theme updates', 'Plugin updates'];
+    const MAIN = ['Features', 'Color swatches', 'Bullet variants', 'Bulk properties', 'MD to PDF export', 'Text covers', 'New note from template', 'Theme updates', 'Plugin updates'];
     ok(JSON.stringify(tab.headings.filter((h) => MAIN.includes(h))) === JSON.stringify(MAIN), 'main sections in order: ' + JSON.stringify(tab.headings));
     ok(['How to see text covers', 'Content', 'Appearance', 'Remote covers', 'Cache', 'Debug'].every((h) => tab.headings.includes(h)), 'text cover settings sections shown: ' + JSON.stringify(tab.headings));
     ok(tab.styleNow === 'badge' && JSON.stringify(tab.styleOptions) === '["swatch","badge","block"]', 'old badge setting shows as Colored badge: ' + JSON.stringify([tab.styleNow, tab.styleOptions]));

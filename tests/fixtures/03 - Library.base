@@ -1,0 +1,22 @@
+views:
+  - type: cards
+    name: Table
+    filters:
+      and:
+        - Designation == ["Books"]
+        - '!file.inFolder("0 Media/Templates")'
+    groupBy:
+      property: authors
+      direction: ASC
+    order:
+      - file.name
+      - Have?
+      - Physical?
+      - Completed
+    sort:
+      - property: author
+        direction: ASC
+      - property: series_number
+        direction: ASC
+    image: note.cover
+    imageAspectRatio: 1.5

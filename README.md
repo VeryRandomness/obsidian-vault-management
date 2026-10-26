@@ -1,6 +1,6 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles six vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles seven vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
@@ -9,9 +9,10 @@ An [Obsidian](https://obsidian.md) plugin that bundles six vault tools in one. E
 | **Bulk properties** | Change, remove or rename a property's values across every note at once. |
 | **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
 | **Text covers** | Styled text covers for cards in Bases views, with automatic cover downloads. |
+| **New note from template** | A Template button in every base's toolbar: pick a template, name the note, and it gets the properties that base's view filters on. |
 | **Theme updates** | Installs themes from GitHub repos and keeps them up to date on startup. |
 
-It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export, Text Cover Generator and Theme Auto-Update. Turn those off before turning this one on, or you will get everything twice.
+It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export, Text Cover Generator and Theme Auto-Update, and adds new notes from templates. Turn those off before turning this one on, or you will get everything twice.
 
 ## Bullet variants
 
@@ -63,6 +64,23 @@ If the standalone Text Cover Generator plugin is switched on, this feature stays
 Open a note and run **Export current note to PDF** from the command palette, or click the file icon in the ribbon. The PDF is saved next to the note with the same name, and links stay clickable: web links as they are, and note links as `obsidian://` links that reopen the note.
 
 The PDF libraries (jsPDF and html2canvas-pro, about 1 MB) live in a separate file, `lib.js`, that is only read the first time you export, so they don't slow down Obsidian's startup. If `lib.js` is missing, the plugin downloads it from this repo by itself.
+
+## New note from template
+
+Every base gets a **Template** button in its toolbar, next to Bases' own **New**. There is also a command, **New note from template**, which works anywhere (in a base it uses that base).
+
+1. **Pick a template** from your template folder. A base can have templates **locked** to it: click the lock next to a template. A base with locked templates lists only those, and **Show all** switches back to every template. Unlock with the same lock, or under **New note from template** in the settings.
+2. **Name the note.** It is created in the **vault root** and opened in a new tab. A name that is already taken gets a number.
+
+The template is filled in by **Templater** if it is on, otherwise by Obsidian's core **Templates** (`{{title}}`, `{{date}}`, `{{time}}`, with formats).
+
+The new note also gets the properties the base (and the view you're on) filters on, so it shows up there: `Designation == ["Books"]` gives it `Designation: Books`, `Status.contains("Open")` adds `Open` to `Status`, and `file.hasTag("book")` adds the tag. Only conditions that must hold are used (every **and** branch, a one-branch **or**, never anything under **not**, and never `file.` conditions). A value the template already sets differently is kept, and a notice says the note may not show in that view.
+
+With **Skip the list when one template is locked** on (the default), a base with exactly one locked template goes straight to naming the note; **Choose another** still opens the full list. Locks follow bases and templates when they are renamed.
+
+Bases' own **New** button does something different: it makes a note in the base's folder, fills in the properties from the filters and can copy a template's properties, but not its text, and it doesn't run Templater.
+
+If a future Obsidian changes the Bases toolbar so the button can't be placed, a small floating button appears in the corner of the base instead, and the command always works.
 
 ## Theme updates
 

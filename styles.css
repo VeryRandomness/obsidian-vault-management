@@ -394,3 +394,68 @@ li:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) > .list-bullet:after {
   pointer-events: none;
   border-radius: inherit;
 }
+
+/* ===== New note from template ===== */
+.vm-new-note .vm-new-note-search {
+	width: 100%;
+	margin-bottom: var(--size-4-2);
+}
+
+.vm-new-note .vm-new-note-list {
+	max-height: 50vh;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.vm-new-note .vm-new-note-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-1) var(--size-4-2);
+	cursor: pointer;
+}
+
+.vm-new-note .vm-new-note-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.vm-new-note .vm-new-note-name {
+	flex: 1;
+}
+
+.vm-new-note .vm-new-note-lock {
+	color: var(--text-faint);
+}
+
+.vm-new-note .vm-new-note-lock.is-locked {
+	color: var(--text-accent);
+}
+
+.vm-new-note .vm-new-note-none,
+.vm-new-note .vm-new-note-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-4-1) 0;
+}
+
+.vm-new-note .vm-new-note-footer,
+.vm-new-note .vm-new-note-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	margin: var(--size-4-2) 0;
+}
+
+/* Only used if a future Obsidian has no Bases toolbar to put the button in */
+.vm-new-from-template-fab {
+	position: absolute;
+	right: var(--size-4-4);
+	bottom: var(--size-4-4);
+	z-index: 5;
+	background: var(--interactive-normal);
+	border-radius: 50%;
+	box-shadow: var(--shadow-s);
+}
