@@ -25,7 +25,7 @@
 		"typescript": "^7.0.2"
 	},
 	"dependencies": {
-		"html2canvas-pro": "^2.5.0",
+		"html2canvas-pro": "^2.5.2",
 		"jspdf": "^4.2.1"
 	}
 }
