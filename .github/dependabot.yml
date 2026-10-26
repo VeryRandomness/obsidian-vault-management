@@ -11,6 +11,12 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    ignore:
+      # Obsidian provides CodeMirror at run time, and the `obsidian` package pins the exact
+      # CodeMirror versions it was written against (npm refuses any other). These move
+      # together with the `obsidian` package, by hand, not one at a time.
+      - dependency-name: "@codemirror/*"
+      - dependency-name: "obsidian"
     groups:
       # one proposal for all the small updates instead of one each
       minor-and-patch:
