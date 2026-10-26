@@ -20,6 +20,8 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: No serious known problems in the libraries that ship to users
+        run: npm audit --omit=dev --audit-level=high
       - name: Type-check and build
         run: npm run build
       - name: The committed main.js and lib.js must match a fresh build

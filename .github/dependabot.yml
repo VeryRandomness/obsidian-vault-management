@@ -1,0 +1,22 @@
+# Dependabot opens a proposed update when a library or a GitHub action has a newer
+# version. Nothing changes until it is merged by hand, and the tests run on every proposal.
+# Library updates change what ends up in lib.js, so a proposal's CI fails the
+# "committed build must match" check until main.js and lib.js are rebuilt and committed
+# on its branch (npm ci && npm run build).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      # one proposal for all the small updates instead of one each
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
