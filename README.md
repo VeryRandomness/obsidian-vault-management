@@ -1,6 +1,6 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles seven vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles eight vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
@@ -10,6 +10,7 @@ An [Obsidian](https://obsidian.md) plugin that bundles seven vault tools in one.
 | **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
 | **Text covers** | Styled text covers for cards in Bases views, with automatic cover downloads. |
 | **New note from template** | A Template button in every base's toolbar: pick a template, name the note, and it gets the properties that base's view filters on. |
+| **HTML editor** | Opens `.html` files in Obsidian: a code editor with colours and autosave, and a live preview that shows the page's images from a vault folder. |
 | **Theme updates** | Installs themes from GitHub repos and keeps them up to date on startup. |
 
 It replaces these plugins: Bullet Variants, Color Inline Plus, Bulk Properties, MD to PDF Export, Text Cover Generator and Theme Auto-Update, and adds new notes from templates. Turn those off before turning this one on, or you will get everything twice.
@@ -81,6 +82,17 @@ With **Skip the list when one template is locked** on (the default), a base with
 Bases' own **New** button does something different: it makes a note in the base's folder, fills in the properties from the filters and can copy a template's properties, but not its text, and it doesn't run Templater.
 
 If a future Obsidian changes the Bases toolbar so the button can't be placed, a small floating button appears in the corner of the base instead, and the command always works.
+
+## HTML editor
+
+`.html` and `.htm` files in the vault open in Obsidian, on desktop and mobile. **New HTML file** makes a starter page.
+
+- **Editor:** HTML, CSS and JavaScript colours (from your theme's code colours), line numbers, bracket matching, search, undo. Changes save by themselves, like a note.
+- **Preview:** the page as a browser shows it, refreshed a moment after you stop typing, keeping its scroll position. The buttons at the top show the editor, the preview, or both side by side. A phone opens on the editor.
+- **Images folder:** pick, once per page, the vault folder its images are in (the folder button at the top). Links like `/favicon.svg`, `img/photo.jpg`, `srcset`, and `url(...)` in styles are shown from that folder, including links the page's own scripts add while it runs. Web addresses are left alone. The choice follows renames of the page or the folder.
+- **Sealed off:** the preview runs in a sandboxed frame. The page's scripts run (needed for pages that build themselves with JavaScript), but can't reach Obsidian, your vault or its storage. **Run the page's scripts in the preview** can be switched off to show only the HTML as written.
+
+The editor is only an editor: publishing the page is up to you.
 
 ## Theme updates
 

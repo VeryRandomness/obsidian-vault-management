@@ -459,3 +459,97 @@ li:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) > .list-bullet:after {
 	border-radius: 50%;
 	box-shadow: var(--shadow-s);
 }
+
+/* ===== HTML editor ===== */
+.vm-html {
+	display: flex;
+	padding: 0 !important;
+	overflow: hidden;
+}
+
+.vm-html .vm-html-editor,
+.vm-html .vm-html-preview {
+	flex: 1 1 50%;
+	min-width: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.vm-html .vm-html-editor {
+	overflow: hidden;
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+.vm-html.is-editor .vm-html-preview,
+.vm-html.is-preview .vm-html-editor {
+	display: none;
+}
+
+.vm-html.is-editor .vm-html-editor,
+.vm-html.is-preview .vm-html-preview {
+	flex-basis: 100%;
+	border-right: none;
+}
+
+.vm-html .cm-editor {
+	height: 100%;
+	font-family: var(--font-monospace);
+	font-size: var(--code-size);
+	background: var(--background-primary);
+	color: var(--code-normal);
+}
+
+.vm-html .cm-scroller {
+	overflow: auto;
+}
+
+.vm-html .cm-gutters {
+	background: var(--background-primary);
+	color: var(--text-faint);
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+.vm-html .cm-activeLine,
+.vm-html .cm-activeLineGutter {
+	background: var(--background-modifier-hover);
+}
+
+.vm-html .cm-selectionBackground,
+.vm-html .cm-focused .cm-selectionBackground {
+	background: var(--text-selection) !important;
+}
+
+.vm-html .cm-cursor {
+	border-left-color: var(--text-normal);
+}
+
+/* syntax colours from the theme's code colours */
+/* tag names come out as tok-typeName, attribute names as tok-propertyName, values as tok-string */
+.vm-html .tok-typeName { color: var(--code-tag); }
+.vm-html .tok-propertyName { color: var(--code-property); }
+.vm-html .tok-string { color: var(--code-string); }
+.vm-html .tok-comment { color: var(--code-comment); font-style: italic; }
+.vm-html .tok-keyword { color: var(--code-keyword); }
+.vm-html .tok-number,
+.vm-html .tok-atom,
+.vm-html .tok-bool { color: var(--code-value); }
+.vm-html .tok-variableName.tok-definition,
+.vm-html .tok-function { color: var(--code-function); }
+.vm-html .tok-operator,
+.vm-html .tok-punctuation { color: var(--code-punctuation); }
+
+.vm-html .vm-html-frame {
+	flex: 1;
+	width: 100%;
+	border: none;
+	background: #fff;
+}
+
+.vm-html .vm-html-hint {
+	padding: var(--size-4-2) var(--size-4-3);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}

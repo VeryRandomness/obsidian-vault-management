@@ -4,6 +4,7 @@ import type { TextCover } from "./features/textCover";
 import type { TextCoverSettings } from "./features/textCoverSettings";
 import { renderTextCoverSettings } from "./features/textCoverSection";
 import { DEFAULT_NEW_NOTE, type NewNote, type NewNoteSettings } from "./features/newNote";
+import { DEFAULT_HTML_EDITOR, type HtmlEditor, type HtmlEditorSettings, type Layout } from "./features/htmlEditor";
 
 export type InlineStyle = "swatch" | "badge" | "block";
 const INLINE_STYLES: InlineStyle[] = ["swatch", "badge", "block"];
@@ -27,6 +28,7 @@ export interface FeatureSettings {
 	mdToPdf: boolean;
 	textCovers: boolean;
 	newNoteButton: boolean;
+	htmlEditor: boolean;
 	themeUpdates: boolean;
 }
 
@@ -34,13 +36,14 @@ export interface VaultManagementSettings {
 	features: FeatureSettings;
 	color: ColorSettings;
 	newNote: NewNoteSettings;
+	htmlEditor: HtmlEditorSettings;
 	// created the first time the text cover feature starts (see TextCover.loadState)
 	textCover?: TextCoverSettings;
 	themes: { repo: string; branch: string; enabled: boolean; name?: string; version?: string }[];
 }
 
 export const DEFAULT_COLOR: ColorSettings = { inlineStyle: "swatch", namedColors: true, codeBlocks: true, copyOnClick: true };
-export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, textCovers: true, newNoteButton: true, themeUpdates: true };
+export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, mdToPdf: true, textCovers: true, newNoteButton: true, htmlEditor: true, themeUpdates: true };
 
 // What the features need from the plugin
 export interface Host extends Plugin {
@@ -67,6 +70,7 @@ export function mergeSettings(data: unknown): VaultManagementSettings {
 		features: { ...DEFAULT_FEATURES, ...((d.features as Partial<FeatureSettings> | undefined) ?? {}) },
 		color: { ...(merged as unknown as ColorSettings), inlineStyle: style },
 		newNote: mergeNewNote(d.newNote),
+		htmlEditor: mergeHtmlEditor(d.htmlEditor),
 		textCover: d.textCover && typeof d.textCover === "object" ? (d.textCover as TextCoverSettings) : undefined,
 		themes: Array.isArray(d.themes) ? (d.themes as VaultManagementSettings["themes"]) : DEFAULT_THEMES.map((t) => ({ ...t })),
 	};
@@ -81,6 +85,20 @@ function mergeNewNote(raw: unknown): NewNoteSettings {
 	return { skipSingle: typeof r.skipSingle === "boolean" ? r.skipSingle : DEFAULT_NEW_NOTE.skipSingle, locks };
 }
 
+function mergeHtmlEditor(raw: unknown): HtmlEditorSettings {
+	const r = (raw && typeof raw === "object" ? raw : {}) as Partial<HtmlEditorSettings>;
+	const folders: Record<string, string> = {};
+	if (r.assetFolders && typeof r.assetFolders === "object") {
+		for (const [k, v] of Object.entries(r.assetFolders)) if (typeof v === "string" && v) folders[k] = v;
+	}
+	const layouts: Layout[] = ["split", "editor", "preview"];
+	return {
+		layout: layouts.includes(r.layout as Layout) ? (r.layout as Layout) : DEFAULT_HTML_EDITOR.layout,
+		runScripts: typeof r.runScripts === "boolean" ? r.runScripts : DEFAULT_HTML_EDITOR.runScripts,
+		assetFolders: folders,
+	};
+}
+
 interface Refreshable {
 	settingsChanged(): void;
 }
@@ -89,6 +107,7 @@ export interface SettingsHost extends Host {
 	colorInline: Refreshable | null;
 	textCover: TextCover | null;
 	newNote: NewNote | null;
+	htmlEditor: HtmlEditor | null;
 	themes: ThemeUpdater | null;
 }
 
@@ -126,6 +145,7 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 		toggle("MD to PDF export", "Export the current note to a PDF next to it.", () => s.features.mdToPdf, (v) => (s.features.mdToPdf = v));
 		toggle("Text covers", "Styled text covers for cards in Bases views.", () => s.features.textCovers, (v) => (s.features.textCovers = v));
 		toggle("New note from template", "A Template button in Bases toolbars, and a command, to make a note from one of your templates.", () => s.features.newNoteButton, (v) => (s.features.newNoteButton = v));
+		toggle("HTML editor", "Open .html files in Obsidian, with a code editor and a live preview.", () => s.features.htmlEditor, (v) => (s.features.htmlEditor = v));
 		toggle("Theme updates", "Install and update themes from GitHub on startup.", () => s.features.themeUpdates, (v) => (s.features.themeUpdates = v));
 
 		heading("Color swatches");
@@ -193,6 +213,34 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 					.setDesc("Locked: " + names.join(", "))
 					.addExtraButton((b) => b.setIcon("trash").setTooltip("Unlock all templates from this base").onClick(async () => {
 						delete s.newNote.locks[base];
+						await save();
+						this.display();
+					}));
+			}
+		} else {
+			new Setting(containerEl).setDesc("Turned off under Features.");
+		}
+
+		heading("HTML editor");
+		if (this.plugin.htmlEditor) {
+			new Setting(containerEl)
+				.setName("How to use")
+				.setDesc("Open any .html file in the vault, or run New HTML file. Edit on the left, see the page on the right; changes save by themselves. The buttons at the top switch between editor, preview and both, reload the preview, and choose the page's images folder: links like /favicon.svg or img/photo.jpg are shown from that folder. The preview is sealed off: the page's scripts run, but can't reach Obsidian or your vault.");
+			new Setting(containerEl)
+				.setName("Opens as")
+				.setDesc("How an HTML file opens. On a phone it always opens on the editor, with a button for the preview.")
+				.addDropdown((d) => d.addOption("split", "Editor and preview").addOption("editor", "Editor").addOption("preview", "Preview")
+					.setValue(s.htmlEditor.layout).onChange(async (v) => { s.htmlEditor.layout = v as Layout; await save(); }));
+			toggle("Run the page's scripts in the preview", "Needed for pages that build themselves with JavaScript. Off shows only the HTML as written.",
+				() => s.htmlEditor.runScripts, (v) => (s.htmlEditor.runScripts = v));
+			const pages = Object.entries(s.htmlEditor.assetFolders);
+			if (!pages.length) new Setting(containerEl).setDesc("No page has an images folder yet.");
+			for (const [page, folder] of pages) {
+				new Setting(containerEl)
+					.setName(page)
+					.setDesc("Images from: " + folder)
+					.addExtraButton((b) => b.setIcon("trash").setTooltip("Forget this page's images folder").onClick(async () => {
+						delete s.htmlEditor.assetFolders[page];
 						await save();
 						this.display();
 					}));

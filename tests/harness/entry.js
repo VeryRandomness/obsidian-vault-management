@@ -1,5 +1,6 @@
 const YAML = require('yaml');
 const view = require('@codemirror/view'); const state = require('@codemirror/state');
+const cmExtra = { '@codemirror/language': require('@codemirror/language'), '@codemirror/commands': require('@codemirror/commands'), '@codemirror/search': require('@codemirror/search'), '@codemirror/autocomplete': require('@codemirror/autocomplete'), '@lezer/common': require('@lezer/common'), '@lezer/highlight': require('@lezer/highlight'), '@lezer/lr': require('@lezer/lr') };
 const P = Element.prototype;
 P.addClass = function (c) { this.classList.add(c); }; P.removeClass = function (c) { this.classList.remove(c); };
 P.toggleClass = function (c, on) { this.classList.toggle(c, !!on); };
@@ -17,6 +18,7 @@ class Plugin {
     constructor(app, manifest) { this.app = app; this.manifest = manifest; this.cmds = {}; this.exts = []; this.processors = []; this.ribbon = []; this.events = []; this.saved = null; this.tab = null; }
     async loadData() { return window.__data || null; } async saveData(d) { this.saved = JSON.parse(JSON.stringify(d)); }
     addSettingTab(t) { this.tab = t; } registerEvent(e) { this.events.push(e); } addCommand(c) { this.cmds[c.id] = c; } addRibbonIcon(i, t, f) { this.ribbon.push([i, t, f]); }
+    registerView(type, make) { (this.views = this.views || {})[type] = make; } registerExtensions(exts, type) { if (window.__extensionsTaken) throw new Error('Attempting to register an existing file extension'); (this.extensions = this.extensions || {})[type] = exts; }
     registerEditorExtension(e) { this.exts.push(e); } registerMarkdownPostProcessor(f) { this.processors.push(f); }
 }
 class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement('div'); } }
@@ -47,12 +49,17 @@ class Setting {
 // open() runs onOpen like Obsidian does; the open modal is window.__modal
 class Modal { constructor(app) { this.app = app; this.modalEl = document.createElement('div'); this.titleEl = this.modalEl.createDiv(); this.contentEl = this.modalEl.createDiv(); } open() { window.__modal = this; document.body.appendChild(this.modalEl); if (this.onOpen) this.onOpen(); } close() { if (this.onClose) this.onClose(); this.modalEl.remove(); if (window.__modal === this) window.__modal = null; } }
 class MarkdownView {}
+class TFolder { constructor(path) { this.path = path; this.name = path.split('/').pop(); } isRoot() { return this.path === '/'; } }
+// enough of Obsidian's text-file view: it loads data through setViewData and saves through requestSave
+class TextFileView { constructor(leaf) { this.leaf = leaf; this.app = leaf.app; this.contentEl = document.createElement('div'); this.containerEl = this.contentEl; this.data = ''; this.file = leaf.file || null; this.actions = []; this.saves = 0; this.listeners = []; } addAction(icon, title, cb) { this.actions.push({ icon, title, cb }); } registerDomEvent(el, type, fn) { el.addEventListener(type, fn); this.listeners.push(() => el.removeEventListener(type, fn)); } requestSave() { this.saves++; } }
+class FuzzySuggestModal { constructor(app) { this.app = app; } setPlaceholder() {} open() { window.__fuzzy = this; } close() {} }
+const Platform = { get isPhone() { return !!window.__isPhone; }, isMobile: false };
 class TFile { constructor(path = 'Note.md') { this.path = path; this.extension = path.split('.').pop(); } }
 const MarkdownRenderer = { render: async (app, content, el) => { el.innerHTML = window.__rendered || ''; } };
 window.createDiv = (o = {}) => { const e = document.createElement('div'); if (o.cls) e.className = o.cls; return e; };
 const setIcon = (el, name) => { el.setAttribute('data-icon', name); };
 const parseYaml = (s) => YAML.parse(s);
-const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, TFile, MarkdownRenderer, setIcon, parseYaml, editorLivePreviewField: state.StateField.define({ create: () => true, update: (v) => v }),
+const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, TFile, TFolder, TextFileView, FuzzySuggestModal, Platform, MarkdownRenderer, setIcon, parseYaml, editorLivePreviewField: state.StateField.define({ create: () => true, update: (v) => v }),
     requestUrl: async ({ url }) => {
         if (window.__web.offline) throw new Error('offline');
         let m = url.match(/api\.github\.com\/repos\/([^/]+\/[^/]+)\/releases\/latest/);
@@ -65,7 +72,7 @@ const stub = { Plugin, PluginSettingTab, Setting, Modal, Notice, MarkdownView, T
         const body = m && window.__web[m[1] + ':' + m[2]]; if (body === undefined) throw new Error('404 ' + url);
         return { text: body };
     } };
-const mods = { obsidian: stub, '@codemirror/view': view, '@codemirror/state': state };
+const mods = { obsidian: stub, '@codemirror/view': view, '@codemirror/state': state, ...cmExtra };
 window.__make = (code, data) => {
     window.__vaultHandlers = {};
     window.__data = data || null; window.__settings.length = 0;
