@@ -33,7 +33,9 @@ const PAGE = `<!DOCTYPE html>
 
 (async () => {
     const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1000, height: 700 } });
-    pg.on('pageerror', (e) => { failures++; console.log('PAGEERROR', e.message); });
+    // the errors section 6b puts in its test page on purpose are expected; anything else counts
+    const EXPECTED = [/Unexpected identifier 'missing'/, /nosuchFunction is not defined/];
+    pg.on('pageerror', (e) => { if (EXPECTED.some((r) => r.test(e.message))) return; failures++; console.log('PAGEERROR', e.message); });
     await pg.setContent('<body></body>'); await pg.addScriptTag({ content: fs.readFileSync(B + '/bundle.js', 'utf8') });
     const code = fs.readFileSync(R + '/main.js', 'utf8');
     await pg.evaluate((c) => { window.__make(c, null); }, code);
@@ -183,6 +185,38 @@ const PAGE = `<!DOCTYPE html>
     const noScripts = await pg.evaluate(async () => { window.__p.settings.htmlEditor.runScripts = false; const v = window.__v; v.renderPreview(); const s = v.contentEl.querySelector('iframe').getAttribute('sandbox'); window.__p.settings.htmlEditor.runScripts = true; return s; });
     ok(noScripts === '', 'scripts off: fully sandboxed: ' + JSON.stringify(noScripts));
     console.log('5. "run scripts" off: the frame gets no permissions at all');
+
+    // 6b. script errors: same line numbers as the file, a banner that says where, and a way there
+    const errs = await pg.evaluate(async (page) => {
+        const out = {}; const H = window.__exports.__test.html;
+        out.sameLines = H.previewDocument(page, { 'a/b.png': 'x' }, 120).split('\n').length === page.split('\n').length;
+        const lines = page.split('\n'); const at = lines.findIndex((l) => l.includes('var CONFIG')); // 0-based
+        lines.splice(at + 1, 0, '  var broken = { photo: 1 missing: 2 };');
+        const bad = lines.join('\n'); out.badLine = at + 2;
+        const v = window.__v; v.setLayout('preview'); v.setViewData(bad, true);
+        await new Promise((r) => setTimeout(r, 600));
+        const box = v.contentEl.querySelector('.vm-html-error'); out.banner = box && box.textContent;
+        out.count = v.contentEl.querySelectorAll('.vm-html-error').length;
+        const go = box && [...box.querySelectorAll('button')].find((b) => /Go to line/.test(b.textContent));
+        go && go.click();
+        out.layoutAfterGo = v.currentLayout;
+        const sel = v.editor.state.selection.main; out.selected = v.editor.state.sliceDoc(sel.from, sel.to);
+        // fixing it clears the banner on the next refresh
+        v.setViewData(page, false); await new Promise((r) => setTimeout(r, 600));
+        out.afterFix = v.contentEl.querySelectorAll('.vm-html-error').length;
+        // a script that throws while running (not a typo) is reported too
+        v.setViewData(page.replace('var app = document.getElementById', 'nosuchFunction(); var app = document.getElementById'), false); await new Promise((r) => setTimeout(r, 600));
+        out.runtime = (v.contentEl.querySelector('.vm-html-error') || {}).textContent || '';
+        v.setViewData(page, false); await new Promise((r) => setTimeout(r, 300));
+        return out;
+    }, PAGE);
+    ok(errs.sameLines, 'the preview helper adds no lines, so error lines match the file');
+    ok(errs.banner && errs.banner.startsWith('Script error on line ' + errs.badLine + ':') && /Go to line/.test(errs.banner), 'banner names the right line (' + errs.badLine + '): ' + errs.banner);
+    ok(errs.count === 1, 'one banner, not one per follow-on error');
+    ok(errs.layoutAfterGo === 'split' && errs.selected === '  var broken = { photo: 1 missing: 2 };', 'Go to line opens the editor on that line: ' + JSON.stringify([errs.layoutAfterGo, errs.selected]));
+    ok(errs.afterFix === 0, 'fixed: the banner goes away');
+    ok(/Script error on line \d+: .*nosuchFunction/.test(errs.runtime), 'errors while the script runs are reported too: ' + errs.runtime);
+    console.log('6b. script errors: banner with the file\'s line number, Go to line, cleared when fixed, runtime errors too');
 
     // 6. the feature: .html and .htm, New HTML file, another plugin already owning .html, settings
     const feat = await pg.evaluate(async (c) => {

@@ -47,9 +47,12 @@ export function assetMap(files: { path: string }[], folder: string, resource: (p
 }
 
 /** Runs first inside the preview: points local links at the vault files, including links
- *  the page's own scripts add later, and reports the scroll position so a refresh keeps it. */
+ *  the page's own scripts add later, reports script errors, and reports the scroll position
+ *  so a refresh keeps it. It is kept on one line, on the same line as <head>, so the line
+ *  numbers of errors match the file. */
 function previewScript(map: Record<string, string>, scrollY: number): string {
-	return `<script data-vm-preview>(function(){
+	return (`<script data-vm-preview>(function(){
+window.addEventListener('error',function(e){parent.postMessage({vmPreviewError:{message:String(e.message||'Script error'),line:e.lineno||0,col:e.colno||0}},'*')});
 var M=${JSON.stringify(map).replace(/</g, "\\u003c")};
 function fix(v){if(!v)return v;var k=v.split(/[?#]/)[0];try{k=decodeURI(k)}catch(e){}return M[k]||M[k.replace(/^\\.\\//,'')]||v}
 function fixSet(v){return v.split(',').map(function(p){var s=p.trim().split(/\\s+/);s[0]=fix(s[0]);return s.join(' ')}).join(', ')}
@@ -60,7 +63,7 @@ new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==='attributes
 document.addEventListener('DOMContentLoaded',function(){all(document.documentElement);window.scrollTo(0,${Math.max(0, Math.round(scrollY))})});
 window.addEventListener('load',function(){window.scrollTo(0,${Math.max(0, Math.round(scrollY))})});
 var t;window.addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(function(){parent.postMessage({vmPreviewScroll:window.scrollY},'*')},100)});
-})();</script>`;
+})();</script>`).replace(/\n/g, "");
 }
 
 /** The page as the preview shows it: the helper script goes in first. */
@@ -131,7 +134,9 @@ export class HtmlView extends TextFileView {
 		this.addAction("eye", "Preview only", () => this.setLayout("preview"));
 		this.addAction("code-xml", "Editor only", () => this.setLayout("editor"));
 		this.registerDomEvent(window, "message", (e: MessageEvent) => {
-			if (this.frame && e.source === this.frame.contentWindow && typeof e.data?.vmPreviewScroll === "number") this.scrollY = e.data.vmPreviewScroll;
+			if (!this.frame || e.source !== this.frame.contentWindow) return;
+			if (typeof e.data?.vmPreviewScroll === "number") this.scrollY = e.data.vmPreviewScroll;
+			else if (e.data?.vmPreviewError) this.showError(e.data.vmPreviewError);
 		});
 		this.editor = new EditorView({
 			parent: this.editorEl,
@@ -230,6 +235,28 @@ export class HtmlView extends TextFileView {
 		}
 		this.previewEl.appendChild(frame);
 		this.frame = frame;
+	}
+
+	/** The page's script failed: say where, once per refresh (later errors usually follow from the first). */
+	showError(err: { message: string; line: number }): void {
+		if (!this.previewEl || this.previewEl.querySelector(".vm-html-error")) return;
+		const box = createDiv({ cls: "vm-html-error" });
+		const line = err.line > 0 && this.editor && err.line <= this.editor.state.doc.lines ? err.line : 0;
+		box.createSpan({ text: line ? `Script error on line ${line}: ${err.message}` : `Script error: ${err.message}` });
+		box.createSpan({ cls: "vm-html-error-note", text: " The page stops at the error, so parts of it may be missing." });
+		if (line) {
+			const go = box.createEl("button", { text: "Go to line " + line });
+			go.onclick = () => this.goToLine(line);
+		}
+		this.previewEl.insertBefore(box, this.previewEl.firstChild);
+	}
+
+	goToLine(line: number): void {
+		if (!this.editor) return;
+		if (this.layout === "preview") this.setLayout(Platform.isPhone ? "editor" : "split");
+		const l = this.editor.state.doc.line(Math.min(Math.max(1, line), this.editor.state.doc.lines));
+		this.editor.dispatch({ selection: { anchor: l.from, head: l.to }, effects: EditorView.scrollIntoView(l.from, { y: "center" }) });
+		this.editor.focus();
 	}
 
 	private pickFolder(): void {

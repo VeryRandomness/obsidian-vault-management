@@ -553,3 +553,19 @@ li:is(.bv-plus, .bv-arrow, .bv-moved, .bv-question) > .list-bullet:after {
 	background: var(--background-secondary);
 	border-bottom: 1px solid var(--background-modifier-border);
 }
+
+.vm-html .vm-html-error {
+	padding: var(--size-4-2) var(--size-4-3);
+	font-size: var(--font-ui-small);
+	color: var(--text-error);
+	background: var(--background-modifier-error);
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.vm-html .vm-html-error .vm-html-error-note {
+	color: var(--text-muted);
+}

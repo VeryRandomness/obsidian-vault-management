@@ -90,6 +90,7 @@ If a future Obsidian changes the Bases toolbar so the button can't be placed, a 
 - **Editor:** HTML, CSS and JavaScript colours (from your theme's code colours), line numbers, bracket matching, search, undo. Changes save by themselves, like a note.
 - **Preview:** the page as a browser shows it, refreshed a moment after you stop typing, keeping its scroll position. The buttons at the top show the editor, the preview, or both side by side. A phone opens on the editor.
 - **Images folder:** pick, once per page, the vault folder its images are in (the folder button at the top). Links like `/favicon.svg`, `img/photo.jpg`, `srcset`, and `url(...)` in styles are shown from that folder, including links the page's own scripts add while it runs. Web addresses are left alone. The choice follows renames of the page or the folder.
+- **Script errors:** if the page's script fails (a typo in a setting, a missing comma), a banner at the top of the preview says so with the line number, and **Go to line** jumps the editor there. A script stops at its first error, so a page that builds itself with JavaScript can look half-empty until it's fixed.
 - **Sealed off:** the preview runs in a sandboxed frame. The page's scripts run (needed for pages that build themselves with JavaScript), but can't reach Obsidian, your vault or its storage. **Run the page's scripts in the preview** can be switched off to show only the HTML as written.
 
 The editor is only an editor: publishing the page is up to you.
