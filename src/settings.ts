@@ -26,6 +26,7 @@ export interface FeatureSettings {
 	colorInline: boolean;
 	bulkProperties: boolean;
 	lineLinks: boolean;
+	symbols: boolean;
 	mdToPdf: boolean;
 	textCovers: boolean;
 	newNoteButton: boolean;
@@ -44,7 +45,7 @@ export interface VaultManagementSettings {
 }
 
 export const DEFAULT_COLOR: ColorSettings = { inlineStyle: "swatch", namedColors: true, codeBlocks: true, copyOnClick: true };
-export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, lineLinks: true, mdToPdf: true, textCovers: true, newNoteButton: true, htmlEditor: true, themeUpdates: true };
+export const DEFAULT_FEATURES: FeatureSettings = { bullets: true, colorInline: true, bulkProperties: true, lineLinks: true, symbols: true, mdToPdf: true, textCovers: true, newNoteButton: true, htmlEditor: true, themeUpdates: true };
 
 // What the features need from the plugin
 export interface Host extends Plugin {
@@ -144,6 +145,7 @@ export class VaultManagementSettingTab extends PluginSettingTab {
 		toggle("Color swatches", "Color swatches next to colors in inline code and code blocks.", () => s.features.colorInline, (v) => (s.features.colorInline = v));
 		toggle("Bulk properties", "Change, remove or rename properties across every note.", () => s.features.bulkProperties, (v) => (s.features.bulkProperties = v));
 		toggle("Lines to links", "A hotkey (Shift+Alt+L) that turns each selected line into a [[link]].", () => s.features.lineLinks, (v) => (s.features.lineLinks = v));
+		toggle("≥ and ≤ symbols", "Show >= and <= as ≥ and ≤. Your notes keep what you type.", () => s.features.symbols, (v) => (s.features.symbols = v));
 		toggle("MD to PDF export", "Export the current note to a PDF next to it.", () => s.features.mdToPdf, (v) => (s.features.mdToPdf = v));
 		toggle("Text covers", "Styled text covers for cards in Bases views.", () => s.features.textCovers, (v) => (s.features.textCovers = v));
 		toggle("New note from template", "A Template button in Bases toolbars, and a command, to make a note from one of your templates.", () => s.features.newNoteButton, (v) => (s.features.newNoteButton = v));

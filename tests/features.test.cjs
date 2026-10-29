@@ -12,17 +12,17 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
     // 1. everything on by default
     let r = await boot(null);
     ok(JSON.stringify(r.cmds) === JSON.stringify(['bulk-edit-properties', 'check-for-update', 'check-theme-update', 'copy-color-at-cursor', 'cycle-bullet', 'export-current-note-to-pdf', 'lines-to-links', 'new-html-file', 'new-note-from-template', 'undo-last-bulk-edit']), 'commands: ' + r.cmds);
-    ok(r.procs === 2 && r.exts === 2 && JSON.stringify(r.ribbon) === '["list-checks","file-output"]' && r.tab, `processors ${r.procs}, extensions ${r.exts}, ribbon ${r.ribbon}, tab ${r.tab}`);
+    ok(r.procs === 3 && r.exts === 3 && JSON.stringify(r.ribbon) === '["list-checks","file-output"]' && r.tab, `processors ${r.procs}, extensions ${r.exts}, ribbon ${r.ribbon}, tab ${r.tab}`);
     ok(JSON.stringify(r.hotkey) === '[{"modifiers":["Shift","Alt"],"key":"8"}]', 'Shift+Alt+8 hotkey kept');
     ok(r.layout === 6, 'startup tasks registered (PDF library check, text covers x2, new-note button, themes, self-update): ' + r.layout);
     ok(r.settings.themes.length === 1 && r.settings.themes[0].repo === 'VeryRandomness/obsidian-nordic-days-and-nights', 'default theme list');
     console.log('1. all features on by default: ' + r.cmds.length + ' commands');
 
     // 2. every feature off: only the updater remains
-    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, lineLinks: false, mdToPdf: false, textCovers: false, newNoteButton: false, htmlEditor: false, themeUpdates: false } });
+    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, lineLinks: false, symbols: false, mdToPdf: false, textCovers: false, newNoteButton: false, htmlEditor: false, themeUpdates: false } });
     ok(JSON.stringify(r.cmds) === '["check-for-update"]' && r.procs === 0 && r.exts === 0 && r.ribbon.length === 0, 'all off: ' + JSON.stringify(r));
     r = await boot({ features: { bullets: false } });
-    ok(!r.cmds.includes('cycle-bullet') && r.cmds.includes('copy-color-at-cursor') && r.cmds.includes('bulk-edit-properties') && r.procs === 1, 'only bullets off: ' + r.cmds);
+    ok(!r.cmds.includes('cycle-bullet') && r.cmds.includes('copy-color-at-cursor') && r.cmds.includes('bulk-edit-properties') && r.procs === 2, 'only bullets off: ' + r.cmds);
     console.log('2. feature switches: ok');
 
     // 3. settings: new layout, and the files of the plugins this replaces
@@ -53,6 +53,26 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
     ok(JSON.stringify(rd[0]) === '["|plain","bv-plus|plus","bv-arrow|arrow ","bv-moved|moved","bv-question|questio","|* star"]', 'Reading view bullets: ' + JSON.stringify(rd[0]));
     ok(rd[1] === 1, 'Reading view: color swatch alongside bullets');
     console.log('4. bullets (Live Preview + Reading view) next to color swatches: ok');
+
+    // 4b. >= and <= shown as ≥ and ≤ (Live Preview and Reading view), the source unchanged
+    await boot(null);
+    const sdoc = ['---', 'min: x >= 1', '---', 'a >= b and c <= d', 'arrows <=> <== >>= stay', '`x >= 1` and $y <= 2$ stay, z >= 3 changes', '>= 5 is a quote', '```', 'if (a >= b)', '```', '$$', 'a <= b', '$$', 'select >= me'].join('\n');
+    const sym = await pg.evaluate(async (d) => {
+        const last = d.length - 2; const v = await window.__lp(d, 0);
+        const text = () => [...v.dom.querySelectorAll('.cm-line')].map((l) => l.textContent);
+        const before = text();
+        v.dispatch({ selection: { anchor: last - 3, head: last + 1 } }); await new Promise((r) => requestAnimationFrame(r));
+        const sel = text().pop();
+        const el = document.createElement('div'); el.innerHTML = '<p>a &gt;= b, c &lt;= d, e &lt;=&gt; f <code>x &gt;= 1</code></p><pre><code>y &lt;= 2</code></pre>'; window.__run(el);
+        return { before, sel, doc: v.state.doc.toString() === d, reading: el.innerHTML, pairs: window.__exports.__test.symbols.findPairs('> > a >= b') };
+    }, sdoc);
+    const swant = ['---', 'min: x >= 1', '---', 'a ≥ b and c ≤ d', 'arrows <=> <== >>= stay', '`x >= 1` and $y <= 2$ stay, z ≥ 3 changes', '>= 5 is a quote', '```', 'if (a >= b)', '```', '$$', 'a <= b', '$$', 'select ≥ me'];
+    swant.forEach((t, i) => ok(sym.before[i] === t, `symbols LP line ${i}: expected ${JSON.stringify(t)} got ${JSON.stringify(sym.before[i])}`));
+    ok(sym.sel === 'select >= me', 'a selection over the pair shows the typed text: ' + sym.sel);
+    ok(sym.doc, 'the note text is not changed');
+    ok(sym.reading === '<p>a ≥ b, c ≤ d, e &lt;=&gt; f <code>x &gt;= 1</code></p><pre><code>y &lt;= 2</code></pre>', 'Reading view symbols: ' + sym.reading);
+    ok(JSON.stringify(sym.pairs) === '[[6,">="]]', 'quote marks before a comparison: ' + JSON.stringify(sym.pairs));
+    console.log('4b. >= and <= shown as ≥ and ≤ (Live Preview + Reading view), code and math left alone: ok');
 
     // 5. bullet cycling + hotkey command, and the Bulk Properties logic
     const cyc = await pg.evaluate(() => {

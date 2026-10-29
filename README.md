@@ -1,6 +1,6 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles nine vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles ten vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
@@ -8,6 +8,7 @@ An [Obsidian](https://obsidian.md) plugin that bundles nine vault tools in one. 
 | **Color swatches** | A swatch next to colors in inline code and code blocks: hex, rgb, hsl, hwb, lab, lch, oklab, oklch, `color()`, `color-mix()` and named colors. Click to copy. |
 | **Bulk properties** | Change, remove or rename a property's values across every note at once. |
 | **Lines to links** | Shift+Alt+L turns each selected line into a `[[link]]`. |
+| **≥ and ≤ symbols** | Shows `>=` and `<=` as ≥ and ≤, without changing your notes. |
 | **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
 | **Text covers** | Styled text covers for cards in Bases views, with automatic cover downloads. |
 | **New note from template** | A Template button in every base's toolbar: pick a template, name the note, and it gets the properties that base's view filters on. |
@@ -43,6 +44,12 @@ Apples              [[Apples]]
 ```
 
 Indentation, quotes, bullets, numbers, task boxes and heading marks stay in front of the link. Blank lines and lines that already have a `[[link]]` are left alone. With nothing selected it links the current line; a selection inside one line links just the selected words. Ctrl+Z undoes it.
+
+## ≥ and ≤ symbols
+
+Type `>=` or `<=` and Obsidian shows ≥ or ≤. Only the look changes: the note keeps `>=` and `<=`, so other apps, search and sync see what you typed.
+
+In Live Preview the pair acts like one character: the cursor steps over it and Backspace removes both. Select it to see the typed text. Code, math (`$...$` and `$$` blocks), the properties and Source mode are left alone, and so are longer arrows like `<=>` or `<==`. A `>=` at the very start of a line is a quote in Markdown, so it stays as typed. Reading view shows the same symbols.
 
 ## Color swatches
 
