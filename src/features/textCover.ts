@@ -11,11 +11,12 @@ const COVER_SELECTORS = ['.bases-cards-cover', '.bases-card-cover'];
 
 const COVER_CLASS = 'tcg-cover';
 
-const IMAGE_PROPERTY_KEYS = ['banner', 'cover', 'image', 'coverUrl'];
+// Each is also accepted with a capital (Cover), the style used in the vault's own properties.
+const IMAGE_PROPERTY_KEYS = ['banner', 'Banner', 'cover', 'Cover', 'image', 'Image', 'coverUrl', 'CoverUrl'];
 // Book Search Plus also writes these alongside `coverUrl`. They're never used
 // as the display property itself, but they're a useful fallback source URL
 // when the primary property has gone stale (see downloadRemoteCovers below).
-const ALT_SOURCE_KEYS = ['coverSmallUrl', 'coverMediumUrl', 'coverLargeUrl'];
+const ALT_SOURCE_KEYS = ['coverSmallUrl', 'coverMediumUrl', 'coverLargeUrl', 'CoverSmallUrl', 'CoverMediumUrl', 'CoverLargeUrl'];
 
 // Bump this if `_extractText`'s logic changes in a way that makes previously
 // cached text wrong even though the settings fingerprint didn't change.
@@ -222,7 +223,7 @@ export class TextCover {
     // Update name index
     this._nameIdx.set(file.basename, file.path);
     const meta = this.app.metadataCache.getFileCache(file);
-    const fmTitle = meta?.frontmatter?.['title'];
+    const fmTitle = meta?.frontmatter?.['title'] ?? meta?.frontmatter?.['Title'];
     if (fmTitle) this._nameIdx.set(String(fmTitle), file.path);
 
     // Fast path: mtime unchanged since we last extracted text for this file
@@ -642,7 +643,7 @@ export class TextCover {
 
     // File title mode
     if (this.settings.defaultToTitle) {
-      return meta?.frontmatter?.['title'] ?? file.basename;
+      return meta?.frontmatter?.['title'] ?? meta?.frontmatter?.['Title'] ?? file.basename;
     }
 
     if (!this.settings.fallbackToBody) return null;

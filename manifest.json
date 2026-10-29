@@ -1,7 +1,7 @@
 {
 	"id": "vr-vault-management",
 	"name": "Vault Management",
-	"version": "1.5.2",
+	"version": "1.5.3",
 	"minAppVersion": "1.13.0",
 	"description": "Bullet variants, color swatches, bulk property editing, PDF export, text covers, new notes from templates, an HTML editor and theme updates in one plugin.",
 	"author": "VeryRandomness",

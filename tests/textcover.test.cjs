@@ -81,6 +81,16 @@ const FP = JSON.stringify({ v: 1, contentProperty: 'textCover', defaultToTitle: 
     ok(h.name === 'a-b-c-d-' && JSON.stringify(h.extUrl) === '[".jpg",null]' && JSON.stringify(h.extType) === '[".jpg",null]', 'file name and extension helpers: ' + JSON.stringify([h.name, h.extUrl, h.extType]));
     console.log('5. URL upgrade, ISBN and file helpers');
 
+    // 6. properties may be written with a capital: Title (and the image names) are understood
+    const ti = await pg.evaluate(async (c) => {
+        const p = window.__make(c, { textCover: { defaultToTitle: true } }); await p.onload();
+        window.__notes = { 'a.md': { fm: { Title: 'Capital title' } }, 'b.md': { fm: { title: 'small title' } }, 'c.md': { fm: {} } };
+        const f = (n) => ({ path: n, basename: n.replace('.md', ''), extension: 'md' });
+        return [await p.textCover._extractText(f('a.md')), await p.textCover._extractText(f('b.md')), await p.textCover._extractText(f('c.md'))];
+    }, code);
+    ok(JSON.stringify(ti) === '["Capital title","small title","c"]', 'Title and title both used for the text cover: ' + JSON.stringify(ti));
+    console.log('6. capitalised property names understood');
+
     await b.close();
     console.log(failures ? `\n${failures} FAILURE(S)` : '\nTEXT COVER TESTS PASS');
     process.exit(failures ? 1 : 0);

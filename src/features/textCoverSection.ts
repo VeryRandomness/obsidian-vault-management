@@ -48,7 +48,7 @@ export function renderTextCoverSettings(containerEl: HTMLElement, feature: TextC
       .setName('Default to file title')
       .setDesc(
         'Use the note title as cover text when no cover text property is set. ' +
-          'Uses the "title" frontmatter property if present, otherwise the file name.'
+          'Uses the "title" (or "Title") frontmatter property if present, otherwise the file name.'
       )
       .addToggle((t) =>
         t.setValue(feature.settings.defaultToTitle).onChange(async (v) => {
