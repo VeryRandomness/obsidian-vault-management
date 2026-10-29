@@ -1,12 +1,13 @@
 # Vault Management
 
-An [Obsidian](https://obsidian.md) plugin that bundles eight vault tools in one. Each can be switched off in the settings.
+An [Obsidian](https://obsidian.md) plugin that bundles nine vault tools in one. Each can be switched off in the settings.
 
 | Feature | What it does |
 | --- | --- |
 | **Bullet variants** | Extra bullet styles: `+`, `|->` (arrow), `=>` (moved) and `?` (question). Shift+Alt+8 cycles them. |
 | **Color swatches** | A swatch next to colors in inline code and code blocks: hex, rgb, hsl, hwb, lab, lch, oklab, oklch, `color()`, `color-mix()` and named colors. Click to copy. |
 | **Bulk properties** | Change, remove or rename a property's values across every note at once. |
+| **Lines to links** | Shift+Alt+L turns each selected line into a `[[link]]`. |
 | **MD to PDF export** | Exports the current note to a PDF next to it, keeping links clickable. |
 | **Text covers** | Styled text covers for cards in Bases views, with automatic cover downloads. |
 | **New note from template** | A Template button in every base's toolbar: pick a template, name the note, and it gets the properties that base's view filters on. |
@@ -30,6 +31,18 @@ Only the look changes; your notes keep exactly what you type.
 A space must follow the symbol. Tasks (`- [ ]`), numbered lists, `*` bullets and code blocks are left alone. In Live Preview the typed `|->`, `=>` or `?` is hidden until your cursor is on that line. The same shapes appear in Reading view and on mobile.
 
 **Shift+Alt+8** (command: **Cycle bullet style**) changes the bullet on the current line, or on every bullet in a selection: normal, `+`, `|->`, `=>`, `?`, then back to normal.
+
+## Lines to links
+
+Select some lines and press **Shift+Alt+L** (command: **Turn lines into links**). Each line becomes a link to a note of that name:
+
+```
+Apples              [[Apples]]
+- Pears        →    - [[Pears]]
+- [ ] Figs          - [ ] [[Figs]]
+```
+
+Indentation, quotes, bullets, numbers, task boxes and heading marks stay in front of the link. Blank lines and lines that already have a `[[link]]` are left alone. With nothing selected it links the current line; a selection inside one line links just the selected words. Ctrl+Z undoes it.
 
 ## Color swatches
 

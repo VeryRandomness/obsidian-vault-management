@@ -11,7 +11,7 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
 
     // 1. everything on by default
     let r = await boot(null);
-    ok(JSON.stringify(r.cmds) === JSON.stringify(['bulk-edit-properties', 'check-for-update', 'check-theme-update', 'copy-color-at-cursor', 'cycle-bullet', 'export-current-note-to-pdf', 'new-html-file', 'new-note-from-template', 'undo-last-bulk-edit']), 'commands: ' + r.cmds);
+    ok(JSON.stringify(r.cmds) === JSON.stringify(['bulk-edit-properties', 'check-for-update', 'check-theme-update', 'copy-color-at-cursor', 'cycle-bullet', 'export-current-note-to-pdf', 'lines-to-links', 'new-html-file', 'new-note-from-template', 'undo-last-bulk-edit']), 'commands: ' + r.cmds);
     ok(r.procs === 2 && r.exts === 2 && JSON.stringify(r.ribbon) === '["list-checks","file-output"]' && r.tab, `processors ${r.procs}, extensions ${r.exts}, ribbon ${r.ribbon}, tab ${r.tab}`);
     ok(JSON.stringify(r.hotkey) === '[{"modifiers":["Shift","Alt"],"key":"8"}]', 'Shift+Alt+8 hotkey kept');
     ok(r.layout === 6, 'startup tasks registered (PDF library check, text covers x2, new-note button, themes, self-update): ' + r.layout);
@@ -19,7 +19,7 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
     console.log('1. all features on by default: ' + r.cmds.length + ' commands');
 
     // 2. every feature off: only the updater remains
-    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, mdToPdf: false, textCovers: false, newNoteButton: false, htmlEditor: false, themeUpdates: false } });
+    r = await boot({ features: { bullets: false, colorInline: false, bulkProperties: false, lineLinks: false, mdToPdf: false, textCovers: false, newNoteButton: false, htmlEditor: false, themeUpdates: false } });
     ok(JSON.stringify(r.cmds) === '["check-for-update"]' && r.procs === 0 && r.exts === 0 && r.ribbon.length === 0, 'all off: ' + JSON.stringify(r));
     r = await boot({ features: { bullets: false } });
     ok(!r.cmds.includes('cycle-bullet') && r.cmds.includes('copy-color-at-cursor') && r.cmds.includes('bulk-edit-properties') && r.procs === 1, 'only bullets off: ' + r.cmds);
@@ -73,7 +73,21 @@ let failures = 0; const ok = (c, m) => { if (!c) { failures++; console.log('  FA
         return out;
     });
     ok(JSON.stringify(bulk) === JSON.stringify([['In Progress', 'Books'], ['Recipe'], 8, [['title', 'Categories', 'publisher', 'categories'], false], [true, { a: 1, Rating: '9' }]]), 'bulk logic: ' + JSON.stringify(bulk));
-    console.log('5. bullet cycling + bulk property logic: ok');
+    const links = await pg.evaluate(() => {
+        const t = window.__exports.__test.lineLinks;
+        const lines = ['Apples', '  - Pears ', '1. Plums', '- [ ] Figs', '> Kiwi', '## Limes', '', 'Has [[a link]] already', 'Mango'];
+        // two selections: "Apples" to "Kiwi", and "ng" inside "Mango"; then a bare cursor on "## Limes"
+        let sels = [{ anchor: { line: 8, ch: 2 }, head: { line: 8, ch: 4 } }, { anchor: { line: 4, ch: 6 }, head: { line: 0, ch: 0 } }]; let cursor = { line: 5, ch: 1 };
+        const pos = (p) => lines.slice(0, p.line).join('\n').length + (p.line ? 1 : 0) + p.ch;
+        const ed = { somethingSelected: () => sels.length > 0, listSelections: () => sels, getCursor: () => cursor, getLine: (n) => lines[n],
+            getRange: (f, to) => lines.join('\n').slice(pos(f), pos(to)),
+            replaceRange: (txt, f, to) => { const all = lines.join('\n'); lines.splice(0, lines.length, ...(all.slice(0, pos(f)) + txt + all.slice(pos(to))).split('\n')); } };
+        window.__p.cmds['lines-to-links'].editorCallback(ed);
+        sels = []; window.__p.cmds['lines-to-links'].editorCallback(ed);
+        return [lines, t.linkLine('[[Done]]'), t.linkLine('   ')];
+    });
+    ok(JSON.stringify(links) === JSON.stringify([['[[Apples]]', '  - [[Pears]]', '1. [[Plums]]', '- [ ] [[Figs]]', '> [[Kiwi]]', '## [[Limes]]', '', 'Has [[a link]] already', 'Ma[[ng]]o'], '[[Done]]', '   ']), 'lines to links: ' + JSON.stringify(links));
+    console.log('5. bullet cycling, bulk property logic, lines to links: ok');
 
     // 6. theme updates
     const th = await pg.evaluate(async (c) => {

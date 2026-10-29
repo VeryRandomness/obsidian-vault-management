@@ -4,6 +4,7 @@ import { SettingsHost, VaultManagementSettings, VaultManagementSettingTab, merge
 import { ColorInline } from "./features/colorInline";
 import { setupBullets, _test as bulletsTest } from "./features/bullets.js";
 import { setupBulk, _test as bulkTest } from "./features/bulk.js";
+import { setupLineLinks, _test as lineLinksTest } from "./features/lineLinks";
 import { setupMdToPdf } from "./features/mdToPdf";
 import { TextCover, _test as textCoverTest } from "./features/textCover";
 import { NewNote, _test as newNoteTest } from "./features/newNote";
@@ -31,6 +32,7 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 			this.colorInline.setup();
 		}
 		if (features.bulkProperties) setupBulk(this);
+		if (features.lineLinks) setupLineLinks(this);
 		if (features.mdToPdf) setupMdToPdf(this);
 		if (features.textCovers) {
 			this.textCover = new TextCover(this);
@@ -61,4 +63,4 @@ export default class VaultManagementPlugin extends Plugin implements SettingsHos
 }
 
 /* for tests outside Obsidian */
-export const __test = { bullets: bulletsTest, bulk: bulkTest, themes: themesTest, textCover: textCoverTest, newNote: newNoteTest, html: htmlTest, mergeSettings };
+export const __test = { bullets: bulletsTest, bulk: bulkTest, lineLinks: lineLinksTest, themes: themesTest, textCover: textCoverTest, newNote: newNoteTest, html: htmlTest, mergeSettings };
