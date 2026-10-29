@@ -263,6 +263,19 @@ class BulkModal extends Modal {
     onOpen() {
         this.titleEl.setText('Bulk edit properties');
         this.pickProperty();
+        /* On a phone the keyboard has no way to close itself: tapping empty space in the dialog
+           or pressing Return/Done puts the text box away. Buttons and lists still work first. */
+        const typing = () => document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        this.modalEl.addEventListener('pointerdown', (e) => {
+            if (typing() && !(e.target instanceof Element && e.target.closest('input, textarea, select, button, a, .bulk-props-row, .setting-item-control')))
+                document.activeElement.blur();
+        });
+        this.modalEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'text') {
+                e.preventDefault();
+                e.target.blur();
+            }
+        });
     }
 
     onClose() {
@@ -273,7 +286,7 @@ class BulkModal extends Modal {
     pickProperty() {
         const el = this.contentEl;
         el.empty();
-        const input = el.createEl('input', { type: 'text', placeholder: 'Property name…', cls: 'bulk-props-search' });
+        const input = el.createEl('input', { type: 'text', placeholder: 'Property name…', cls: 'bulk-props-search', attr: { enterkeyhint: 'done' } });
         const list = el.createDiv({ cls: 'bulk-props-list' });
         const names = [...this.props.keys()].sort((a, b) =>
             this.props.get(b).files.length - this.props.get(a).files.length || a.localeCompare(b));
@@ -323,7 +336,7 @@ class BulkModal extends Modal {
             .setDesc('Give every note’s “' + name + '” a new name.')
             .addButton((b) => b.setButtonText('Rename…').onClick(() => this.renameProperty(name)));
 
-        const input = el.createEl('input', { type: 'text', placeholder: 'Search values…', cls: 'bulk-props-search' });
+        const input = el.createEl('input', { type: 'text', placeholder: 'Search values…', cls: 'bulk-props-search', attr: { enterkeyhint: 'done' } });
         const tools = el.createDiv({ cls: 'bulk-props-tools' });
         const list = el.createDiv({ cls: 'bulk-props-list' });
         const footer = el.createDiv({ cls: 'bulk-props-footer' });
@@ -401,6 +414,7 @@ class BulkModal extends Modal {
             .setDesc('In a list, only the ticked items change. Leave empty to clear them.')
             .addText((t) => {
                 t.setPlaceholder('New value').onChange((v) => { text = v; draw(); });
+                t.inputEl.setAttribute('enterkeyhint', 'done');
                 setTimeout(() => t.inputEl.focus(), 0);
             });
 
@@ -446,7 +460,7 @@ class BulkModal extends Modal {
             if (n !== name)
                 datalist.createEl('option', { value: n });
         const input = el.createEl('input', {
-            type: 'text', placeholder: 'New property name…', cls: 'bulk-props-search', attr: { list: listId }
+            type: 'text', placeholder: 'New property name…', cls: 'bulk-props-search', attr: { list: listId, enterkeyhint: 'done' }
         });
         const note = el.createDiv({ cls: 'bulk-props-ticked' });
         const update = () => {
